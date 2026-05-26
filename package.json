@@ -116,6 +116,7 @@
     "matterbridge:list": "matterbridge -list"
   },
   "dependencies": {
+    "mqtt": "^5.0.0",
     "node-ansi-logger": "3.2.1",
     "node-persist-manager": "2.0.2"
   },

@@ -1,53 +1,73 @@
 {
-  "title": "Matterbridge test plugin",
-  "description": "matterbridge-mqtt-devices v. 0.0.1 by https://github.com/hobbyquaker",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "matterbridge-mqtt-devices",
+  "description": "Matterbridge MQTT devices plugin configuration",
   "type": "object",
   "properties": {
     "name": {
-      "title": "Plugin Name",
       "description": "Plugin name",
-      "type": "string",
-      "readOnly": true,
-      "ui:widget": "hidden"
+      "type": "string"
     },
     "type": {
-      "title": "Plugin Type",
       "description": "Plugin type",
+      "type": "string"
+    },
+    "broker": {
+      "description": "MQTT broker URL (e.g. mqtt://192.168.1.10:1883)",
       "type": "string",
-      "readOnly": true,
-      "ui:widget": "hidden"
+      "default": "mqtt://localhost:1883"
     },
-    "whiteList": {
-      "title": "White List",
-      "description": "Only the devices in the list will be exposed. If the list is empty, all the devices will be exposed.",
+    "username": {
+      "description": "MQTT username",
+      "type": "string"
+    },
+    "password": {
+      "description": "MQTT password",
+      "type": "string"
+    },
+    "devices": {
+      "description": "List of MQTT devices to expose as Matter devices",
       "type": "array",
       "items": {
-        "type": "string"
-      },
-      "uniqueItems": true,
-      "selectFrom": "name"
-    },
-    "blackList": {
-      "title": "Black List",
-      "description": "The devices in the list will not be exposed. If the list is empty, no devices will be excluded.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true,
-      "selectFrom": "name"
-    },
-    "debug": {
-      "title": "Enable Debug",
-      "description": "Enable debug mode for the plugin. Only for debugging purposes, not recommended for production use.",
-      "type": "boolean",
-      "default": false
-    },
-    "unregisterOnShutdown": {
-      "title": "Unregister On Shutdown",
-      "description": "Unregister all devices on shutdown. Only for debugging purposes, not recommended for production use.",
-      "type": "boolean",
-      "default": false
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Device display name",
+            "type": "string"
+          },
+          "type": {
+            "description": "Device type",
+            "type": "string",
+            "enum": [
+              "light",
+              "colorlight",
+              "outlet",
+              "switch",
+              "onoff_light",
+              "dimmable_outlet",
+              "generic_switch",
+              "door_lock",
+              "light_sensor",
+              "rain_sensor",
+              "water_leak",
+              "smoke_alarm",
+              "soil_sensor",
+              "temperature",
+              "humidity",
+              "contact_sensor",
+              "occupancy",
+              "fan",
+              "cover",
+              "thermostat"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      }
     }
-  }
+  },
+  "required": []
 }

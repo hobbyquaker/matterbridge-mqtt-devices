@@ -1,6 +1,10 @@
 {
   "name": "matterbridge-mqtt-devices",
   "type": "DynamicPlatform",
+  "broker": "mqtt://localhost:1883",
+  "username": "",
+  "password": "",
+  "devices": [],
   "whiteList": [],
   "blackList": [],
   "debug": false,
