@@ -16,7 +16,7 @@ import { AnsiLogger } from 'matterbridge/logger';
 // ── MQTT ──────────────────────────────────────────────────────────────────────
 import mqtt, { IClientOptions, MqttClient } from 'mqtt';
 
-import type { AnyHandler, DeviceContext, DeviceKind, EditableDeviceKey, MqttDeviceConfig } from './devices/index.js';
+import type { AnyHandler, DeviceContext, EditableDeviceKey, MqttDeviceConfig } from './devices/index.js';
 // ── Device registry ───────────────────────────────────────────────────────────
 import { ALL_EDITABLE_KEYS, findDescriptor, NUMBER_KEYS } from './devices/index.js';
 
@@ -64,6 +64,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   override async onConfigure(): Promise<void> {
     this.log.info('onConfigure: all devices ready');
+    return Promise.resolve();
   }
 
   override async onShutdown(reason?: string): Promise<void> {
@@ -162,16 +163,18 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     // Instead, locate Matterbridge's HTTP frontend server by scanning active Node.js handles.
     // The frontend HTTP server is the only listening server with 'request' event listeners
     // (Express is attached to it); raw TCP/Matter servers have none.
-    const handles: any[] = (process as any)._getActiveHandles?.() ?? [];
-    const httpServer = handles.find(
-      (h: any) =>
-        h !== null &&
-        typeof h === 'object' &&
-        h.listening === true &&
-        typeof h.prependListener === 'function' &&
-        typeof h.listenerCount === 'function' &&
-        (h.listenerCount('request') as number) > 0,
-    ) as Server | undefined;
+    const proc = process as unknown as { _getActiveHandles?: () => unknown[] };
+    const handles: unknown[] = proc._getActiveHandles?.() ?? [];
+    const httpServer = handles.find((h): h is Server => {
+      if (h === null || typeof h !== 'object') return false;
+      const handle = h as Record<string, unknown>;
+      return (
+        handle['listening'] === true &&
+        typeof handle['prependListener'] === 'function' &&
+        typeof handle['listenerCount'] === 'function' &&
+        (handle as unknown as { listenerCount: (e: string) => number }).listenerCount('request') > 0
+      );
+    });
 
     if (!httpServer) {
       this.log.warn('Matterbridge HTTP server not found; device editor routes not attached');
@@ -330,7 +333,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       if (key === 'retain' || key === 'batteryValueBased') {
         if (incoming === true || incoming === 'true') (cfg as unknown as Record<string, unknown>)[key] = true;
         else if (incoming === false || incoming === 'false') (cfg as unknown as Record<string, unknown>)[key] = false;
-        else delete (cfg as unknown as Record<string, unknown>)[key];
+        else Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
         continue;
       }
 
@@ -339,7 +342,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         if (val === 'battery' || val === 'mains') {
           (cfg as unknown as Record<string, unknown>)[key] = val;
         } else {
-          delete (cfg as unknown as Record<string, unknown>)[key];
+          Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
         }
         continue;
       }
@@ -347,7 +350,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       if (this.isNumberKey(key)) {
         const raw = incoming === undefined || incoming === null ? '' : String(incoming).trim();
         if (raw === '') {
-          delete (cfg as unknown as Record<string, unknown>)[key];
+          Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
           continue;
         }
         const n = Number(raw);
@@ -358,7 +361,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       }
 
       const value = incoming === undefined || incoming === null ? '' : String(incoming).trim();
-      if (value === '') delete (cfg as unknown as Record<string, unknown>)[key];
+      if (value === '') Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
       else (cfg as unknown as Record<string, unknown>)[key] = value;
     }
 
@@ -488,11 +491,13 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private getAttr(ep: MatterbridgeEndpoint, clusterId: number, attr: string): unknown {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return getAttribute(ep, clusterId as any, attr, this.log);
   }
 
-  private setAttr(ep: MatterbridgeEndpoint, clusterId: number, attr: string, value: any): void {
-    void setAttribute(ep, clusterId as any, attr, value, this.log);
+  private setAttr(ep: MatterbridgeEndpoint, clusterId: number, attr: string, value: unknown): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    void setAttribute(ep, clusterId as any, attr, value as any, this.log);
   }
 
   private initEp(ep: MatterbridgeEndpoint, cfg: MqttDeviceConfig, productId: number): void {
@@ -501,6 +506,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   }
 
   private onCmd(ep: MatterbridgeEndpoint, cmd: string, fn: AnyHandler): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ep.addCommandHandler(cmd as any, fn as any);
   }
 
@@ -521,7 +527,6 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     // Availability / online state
     if (cfg.availabilityTopic) {
       const onlinePayload = cfg.payloadOnline ?? 'online';
-      const offlinePayload = cfg.payloadOffline ?? 'offline';
       this.subscribe(cfg.availabilityTopic, (p) => {
         const state = this.toPayloadString(this.extractPayloadValue(p, cfg.availabilityJsonPath));
         const isOnline = state === onlinePayload;
@@ -630,7 +635,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
     const tokens: string[] = [];
     for (const part of normalizedPath.split('.')) {
-      const matches = part.match(/[^\[\]]+|\[\d+\]/g);
+      const matches = part.match(/[^[\]]+|\[\d+\]/g);
       if (!matches) continue;
       for (const match of matches) {
         if (match.startsWith('[') && match.endsWith(']')) {

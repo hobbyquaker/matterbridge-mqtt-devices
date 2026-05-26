@@ -1,4 +1,4 @@
-﻿import { fanDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { fanDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
@@ -27,15 +27,15 @@ export const fanDescriptor: DeviceDescriptor = {
 
     let currentLevel = SPD_MIN;
 
-    ep.subscribeAttribute(
-      CID.FanControl as any,
+    void ep.subscribeAttribute(
+      'FanControl',
       'percentSetting',
       (newPct: number) => {
         const newLevel = pctToLv(newPct);
         if (newLevel === currentLevel) return;
         const prev = currentLevel;
         currentLevel = newLevel;
-        ctx.log.info(`[${cfg.name}] → level ${newLevel} (${newPct}%)`);
+        ctx.log.info(`[${cfg.name}] ? level ${newLevel} (${newPct}%)`);
 
         if (cfg.speedCommandTopic) ctx.publish(cfg.speedCommandTopic, JSON.stringify({ level: newLevel, percent: newPct }), cfg.retain);
 
@@ -62,7 +62,7 @@ export const fanDescriptor: DeviceDescriptor = {
 
         if (lv !== null && !isNaN(lv)) {
           currentLevel = Math.max(SPD_MIN, Math.min(SPD_MAX, Math.round(lv)));
-          ctx.log.info(`[${cfg.name}] ← level ${currentLevel}`);
+          ctx.log.info(`[${cfg.name}] ? level ${currentLevel}`);
           ctx.setAttr(ep, CID.FanControl, 'percentSetting', lvToPct(currentLevel));
         }
       });
@@ -70,7 +70,7 @@ export const fanDescriptor: DeviceDescriptor = {
 
     await ctx.registerDevice(ep);
     ctx.subscribeToAvailabilityAndBattery(ep, cfg);
-    ctx.endpointMap.set(cfg.id!, ep);
-    ctx.log.info(`✓ fan "${cfg.name}" (levels ${SPD_MIN}–${SPD_MAX})`);
+    ctx.endpointMap.set(cfg.id ?? '', ep);
+    ctx.log.info(`? fan "${cfg.name}" (levels ${SPD_MIN}�${SPD_MAX})`);
   },
 };

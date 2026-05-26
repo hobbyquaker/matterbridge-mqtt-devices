@@ -1,20 +1,17 @@
-﻿import { rainSensor, powerSource, MatterbridgeEndpoint } from 'matterbridge';
-import { COMMON_KEYS, CID } from './types.js';
-import type { DeviceDescriptor, DeviceContext, MqttDeviceConfig } from './types.js';
+import { MatterbridgeEndpoint, powerSource, rainSensor } from 'matterbridge';
 
+import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
+import { CID, COMMON_KEYS } from './types.js';
 
 export const rainSensorDescriptor: DeviceDescriptor = {
   type: 'rain_sensor',
-  editableKeys: [
-    ...COMMON_KEYS,
-    'stateTopic', 'stateJsonPath', 'payloadOn', 'payloadOff',
-  ],
+  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadOn', 'payloadOff'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
-    const RAINING = cfg.payloadOn  ?? 'ON';
-    const DRY     = cfg.payloadOff ?? 'OFF';
+    const RAINING = cfg.payloadOn ?? 'ON';
+    const DRY = cfg.payloadOff ?? 'OFF';
 
     const ep = new MatterbridgeEndpoint([rainSensor, powerSource]);
     ctx.initEp(ep, cfg, 0x8010);
@@ -25,7 +22,7 @@ export const rainSensorDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.stateTopic, (p) => {
         const v = ctx.parseOnOff(p, RAINING, DRY, cfg.stateJsonPath);
         if (v !== null) {
-          ctx.log.info(`[${cfg.name}] ← ${v ? 'RAINING' : 'DRY'}`);
+          ctx.log.info(`[${cfg.name}] ? ${v ? 'RAINING' : 'DRY'}`);
           ctx.setAttr(ep, CID.BooleanState, 'stateValue', v);
         }
       });
@@ -33,7 +30,7 @@ export const rainSensorDescriptor: DeviceDescriptor = {
 
     await ctx.registerDevice(ep);
     ctx.subscribeToAvailabilityAndBattery(ep, cfg);
-    ctx.endpointMap.set(cfg.id!, ep);
-    ctx.log.info(`✓ rain sensor "${cfg.name}"`);
+    ctx.endpointMap.set(cfg.id ?? '', ep);
+    ctx.log.info(`? rain sensor "${cfg.name}"`);
   },
 };

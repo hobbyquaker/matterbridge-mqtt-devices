@@ -267,6 +267,7 @@ export const NUMBER_KEYS: readonly EditableDeviceKey[] = ['brightnessMin', 'brig
 
 // ── Command handler types ──────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyHandler = (data: any) => void | Promise<void>;
 export interface LevelRequest {
   request: { level: number };

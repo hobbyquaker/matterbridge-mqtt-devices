@@ -1,14 +1,11 @@
-﻿import { humiditySensor, powerSource, MatterbridgeEndpoint } from 'matterbridge';
-import { COMMON_KEYS, CID } from './types.js';
-import type { DeviceDescriptor, DeviceContext, MqttDeviceConfig } from './types.js';
+import { humiditySensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
+import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
+import { CID, COMMON_KEYS } from './types.js';
 
 export const humidityDescriptor: DeviceDescriptor = {
   type: 'humidity',
-  editableKeys: [
-    ...COMMON_KEYS,
-    'stateTopic', 'stateJsonPath',
-  ],
+  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -22,7 +19,7 @@ export const humidityDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.stateTopic, (p) => {
         const h = ctx.parseFloatPayload(p, ['humidity', 'value'], cfg.stateJsonPath);
         if (h !== null && !isNaN(h)) {
-          ctx.log.info(`[${cfg.name}] ← ${h}%`);
+          ctx.log.info(`[${cfg.name}] ? ${h}%`);
           ctx.setAttr(ep, CID.RelativeHumidityMeasurement, 'measuredValue', Math.round(h * 100));
         }
       });
@@ -30,7 +27,7 @@ export const humidityDescriptor: DeviceDescriptor = {
 
     await ctx.registerDevice(ep);
     ctx.subscribeToAvailabilityAndBattery(ep, cfg);
-    ctx.endpointMap.set(cfg.id!, ep);
-    ctx.log.info(`✓ humidity sensor "${cfg.name}"`);
+    ctx.endpointMap.set(cfg.id ?? '', ep);
+    ctx.log.info(`? humidity sensor "${cfg.name}"`);
   },
 };

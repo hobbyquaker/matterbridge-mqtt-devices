@@ -30,10 +30,12 @@ import { MqttPlatform } from './platform.js';
 export { MqttPlatform };
 
 /**
+ * Initializes the matterbridge-mqtt-devices plugin and returns the platform instance.
  *
- * @param matterbridge
- * @param log
- * @param config
+ * @param {PlatformMatterbridge} matterbridge - The Matterbridge platform interface.
+ * @param {AnsiLogger} log - The logger instance provided by Matterbridge.
+ * @param {PlatformConfig} config - The plugin configuration.
+ * @returns {MqttPlatform} The initialized MQTT platform instance.
  */
 export default function initializePlugin(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: PlatformConfig): MqttPlatform {
   return new MqttPlatform(matterbridge, log, config);
