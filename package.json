@@ -1,21 +1,17 @@
 {
-  "name": "matterbridge-plugin-template",
-  "version": "1.0.22",
-  "description": "Matterbridge Template Plugin",
-  "author": "https://github.com/Luligu",
+  "name": "matterbridge-mqtt-devices",
+  "version": "0.0.1",
+  "description": "Matterbridge MQTT Devices Plugin",
+  "author": "https://github.com/hobbyquaker",
   "license": "Apache-2.0",
-  "homepage": "https://www.npmjs.com/package/matterbridge-plugin-template",
-  "private": true,
+  "homepage": "https://www.npmjs.com/package/matterbridge-mqtt-devices",
+  "private": false,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Luligu/matterbridge-plugin-template.git"
+    "url": "git+https://github.com/hobbyquaker/matterbridge-mqtt-devices.git"
   },
   "bugs": {
-    "url": "https://github.com/Luligu/matterbridge-plugin-template/issues"
-  },
-  "funding": {
-    "type": "buymeacoffee",
-    "url": "https://www.buymeacoffee.com/luligugithub"
+    "url": "https://github.com/hobbyquaker/matterbridge-mqtt-devices/issues"
   },
   "keywords": [
     "matterbridge",

@@ -1,5 +1,5 @@
 {
-  "name": "matterbridge-plugin-template",
+  "name": "matterbridge-mqtt-devices",
   "type": "DynamicPlatform",
   "whiteList": [],
   "blackList": [],

@@ -16,3 +16,10 @@
 - For Jest tests in this repository, use ESM-safe patterns. Prefer `jest.unstable_mockModule` over `jest.mock`.
 - When behavior changes, update the relevant tests and documentation.
 - Use dedicated instruction files under [.github/instructions](instructions/) when a rule applies only to specific file types or workflows.
+- Use these repositories as the source of truth for platform patterns, lifecycle usage, and supported device semantics:
+  - https://github.com/Luligu/matterbridge
+  - https://github.com/Luligu/matterbridge-plugin-template
+  - https://github.com/Luligu/matterbridge-example-dynamic-platform
+- When bumping the package version, also update the `@version` tag in the file-level JSDoc comment at the top of `src/module.ts` to match.
+- Always commit completed changes unless the user explicitly asks not to commit.
+- Use this commit message convention: `<type>(<scope>): <short imperative summary>` where type is one of `feat|fix|refactor|docs|test|chore|build|ci|perf|revert`, scope is short and optional, and the summary is concise (preferably <= 72 characters).

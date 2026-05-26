@@ -2,12 +2,12 @@
  * This file contains the plugin template.
  *
  * @file module.ts
- * @author Luca Liguori
- * @created 2025-06-15
- * @version 1.3.0
+ * @author hobbyquaker
+ * @created 2026-05-26
+ * @version 0.0.1
  * @license Apache-2.0
  *
- * Copyright 2025, 2026, 2027 Luca Liguori.
+ * Copyright 2026 hobbyquaker.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

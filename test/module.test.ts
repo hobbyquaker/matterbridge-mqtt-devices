@@ -46,7 +46,7 @@ const mockMatterbridge: PlatformMatterbridge = {
 } as unknown as PlatformMatterbridge;
 
 const mockConfig: PlatformConfig = {
-  name: 'matterbridge-plugin-template',
+  name: 'matterbridge-mqtt-devices',
   type: 'DynamicPlatform',
   version: '1.0.0',
   whiteList: [],
