@@ -6,7 +6,7 @@
 ![CodeQL](https://github.com/hobbyquaker/matterbridge-mqtt-devices/actions/workflows/codeql.yml/badge.svg)
 [![codecov](https://codecov.io/gh/hobbyquaker/matterbridge-mqtt-devices/branch/main/graph/badge.svg)](https://codecov.io/gh/hobbyquaker/matterbridge-mqtt-devices)
 
-A [Matterbridge](https://github.com/Luligu/matterbridge) plugin that exposes MQTT-connected devices as native Matter accessories. It bridges your existing MQTT smart home devices — sensors, lights, covers, locks, thermostats and more — to any Matter controller such as Apple Home, Google Home, Amazon Alexa or Home Assistant.
+A [Matterbridge](https://github.com/Luligu/matterbridge) plugin that exposes MQTT-connected devices as native Matter accessories. It bridges your existing MQTT smart home devices — sensors, lights, covers, locks, thermostats and more — to any Matter controller such as Apple Home, Google Home, Amazon Alexa or Home Assistant. With this Plugin you have to create devices and assign MQTT topics manually in the Matterbridge Web UI (no config file editing neccessary).
 
 ---
 
@@ -38,7 +38,7 @@ A [Matterbridge](https://github.com/Luligu/matterbridge) plugin that exposes MQT
 
 ---
 
-## Installation
+## Installation and Usage
 
 Install via the Matterbridge UI or npm:
 
@@ -46,7 +46,7 @@ Install via the Matterbridge UI or npm:
 npm install -g matterbridge-mqtt-devices
 ```
 
-Then restart Matterbridge and enable the plugin.
+Then restart Matterbridge and add/enable the plugin. You can then configure the MQTT broker and add devices in the plugin config. After devices are added and bridge is restarted you can click on the gear icon in the device list to edit the MQTT topic and payload configuration per device. Mind that afterwards another bridge restart is needed.
 
 ---
 
@@ -123,32 +123,6 @@ The top-level plugin configuration lives in `matterbridge-mqtt-devices.config.js
 | `water-leak-detector`      | Water Leak Detector      | Wet/dry boolean                                              |
 | `water-valve`              | Water Valve              | Open/close valve                                             |
 | `window-covering`          | Window Covering          | Blinds, shutters or roller shades with position and tilt     |
-
----
-
-## Common Device Options
-
-Every device definition supports these fields:
-
-```jsonc
-{
-  "name": "Living Room Sensor",     // Display name shown in Matter controllers
-  "type": "temperature-sensor",     // Device type (see table above)
-  "id": "living-room-sensor",       // Optional stable ID — used for storage; auto-generated if omitted
-
-  // Availability (online/offline → Matter reachability)
-  "topicAvailability": "home/sensor/availability",
-  "payloadOnline": "online",        // Default: "online"
-  "payloadOffline": "offline",      // Default: "offline"
-
-  // Battery
-  "topicBattery": "home/sensor/battery",
-  "powerSource": "battery",         // "battery" or "mains"
-
-  // Retain flag for published messages
-  "retain": false
-}
-```
 
 ---
 
