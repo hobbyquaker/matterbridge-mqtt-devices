@@ -3,8 +3,8 @@ import { dimmableLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 import type { AnyHandler, DeviceContext, DeviceDescriptor, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const lightDescriptor: DeviceDescriptor = {
-  type: 'light',
+export const dimmableLightDescriptor: DeviceDescriptor = {
+  type: 'dimmable-light',
   editableKeys: [
     ...COMMON_KEYS,
     'stateTopic',

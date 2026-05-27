@@ -21,8 +21,8 @@ function parseAlarmState(payload: string, normal: string, warning: string, criti
   return AlarmState.Normal;
 }
 
-export const smokeAlarmDescriptor: DeviceDescriptor = {
-  type: 'smoke_alarm',
+export const smokeCoAlarmDescriptor: DeviceDescriptor = {
+  type: 'smoke-co-alarm',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical', 'coStateTopic', 'coStateJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

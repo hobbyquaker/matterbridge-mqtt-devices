@@ -4,7 +4,7 @@ import type { AnyHandler, DeviceContext, DeviceDescriptor, LevelRequest, MqttDev
 import { CID, COMMON_KEYS } from './types.js';
 
 export const dimmableOutletDescriptor: DeviceDescriptor = {
-  type: 'dimmable_outlet',
+  type: 'dimmable-outlet',
   editableKeys: [
     ...COMMON_KEYS,
     'stateTopic',

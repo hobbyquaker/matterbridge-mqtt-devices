@@ -13,7 +13,7 @@ import { CID, COMMON_KEYS } from './types.js';
  * will see a moisture reading via the humidity measurement attribute.
  */
 export const soilSensorDescriptor: DeviceDescriptor = {
-  type: 'soil_sensor',
+  type: 'soil-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

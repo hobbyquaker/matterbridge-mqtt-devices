@@ -3,8 +3,8 @@ import { MatterbridgeEndpoint, onOffSwitch, powerSource } from 'matterbridge';
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const switchDescriptor: DeviceDescriptor = {
-  type: 'switch',
+export const onOffSwitchDescriptor: DeviceDescriptor = {
+  type: 'on-off-switch',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'commandTopic', 'payloadOn', 'payloadOff', 'retain'],
   applyDefaults(cfg, baseTopic) {
     return { commandTopic: cfg.commandTopic ?? `${baseTopic}/set` };

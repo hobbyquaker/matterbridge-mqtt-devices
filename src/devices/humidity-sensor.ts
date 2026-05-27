@@ -3,8 +3,8 @@ import { humiditySensor, MatterbridgeEndpoint, powerSource } from 'matterbridge'
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const humidityDescriptor: DeviceDescriptor = {
-  type: 'humidity',
+export const humiditySensorDescriptor: DeviceDescriptor = {
+  type: 'humidity-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

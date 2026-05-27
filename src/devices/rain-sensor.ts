@@ -4,7 +4,7 @@ import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.
 import { CID, COMMON_KEYS } from './types.js';
 
 export const rainSensorDescriptor: DeviceDescriptor = {
-  type: 'rain_sensor',
+  type: 'rain-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadOn', 'payloadOff'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

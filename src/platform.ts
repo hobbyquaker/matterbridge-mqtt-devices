@@ -391,7 +391,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     for (const key of keys) values[key] = (cfg as unknown as Record<string, unknown>)[key] ?? '';
     values['retain'] = cfg.retain === true;
 
-    const title = `${cfg.name} (${cfg.type ?? 'outlet'})`;
+    const title = `${cfg.name} (${cfg.type ?? 'on-off-outlet'})`;
     const initialJson = JSON.stringify(values);
 
     return `<!doctype html>
@@ -807,7 +807,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   }
 
   private applyDeviceDefaults(cfg: MqttDeviceConfig, index: number): MqttDeviceConfig {
-    const type = cfg.type ?? 'outlet';
+    const type = cfg.type ?? 'on-off-outlet';
     const name = (cfg.name ?? '').trim() || `Device ${index + 1}`;
     const id = (cfg.id ?? '').trim() || this.slugify(name) || `${type}_${index + 1}`;
     const baseTopic = `matterbridge/${id}`;

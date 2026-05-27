@@ -4,7 +4,7 @@ import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.
 import { COMMON_KEYS } from './types.js';
 
 export const genericSwitchDescriptor: DeviceDescriptor = {
-  type: 'generic_switch',
+  type: 'generic-switch',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadPress', 'payloadDouble', 'payloadLong'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

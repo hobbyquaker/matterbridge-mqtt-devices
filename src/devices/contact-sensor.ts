@@ -3,8 +3,8 @@ import { contactSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const contactDescriptor: DeviceDescriptor = {
-  type: 'contact_sensor',
+export const contactSensorDescriptor: DeviceDescriptor = {
+  type: 'contact-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadOpen', 'payloadClosed'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

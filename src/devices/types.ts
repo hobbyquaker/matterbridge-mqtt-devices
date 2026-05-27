@@ -8,26 +8,26 @@ import type { AnsiLogger } from 'matterbridge/logger';
 // ── Device kinds ───────────────────────────────────────────────────────────
 
 export type DeviceKind =
-  | 'outlet'
-  | 'switch'
-  | 'light'
-  | 'colorlight'
-  | 'contact_sensor'
-  | 'temperature'
-  | 'humidity'
-  | 'occupancy'
+  | 'on-off-outlet'
+  | 'on-off-switch'
+  | 'dimmable-light'
+  | 'color-temperature-light'
+  | 'contact-sensor'
+  | 'temperature-sensor'
+  | 'humidity-sensor'
+  | 'occupancy-sensor'
   | 'cover'
   | 'fan'
   | 'thermostat'
-  | 'onoff_light'
-  | 'dimmable_outlet'
-  | 'generic_switch'
-  | 'door_lock'
-  | 'light_sensor'
-  | 'rain_sensor'
-  | 'water_leak'
-  | 'smoke_alarm'
-  | 'soil_sensor';
+  | 'on-off-light'
+  | 'dimmable-outlet'
+  | 'generic-switch'
+  | 'door-lock'
+  | 'light-sensor'
+  | 'rain-sensor'
+  | 'water-leak-detector'
+  | 'smoke-co-alarm'
+  | 'soil-sensor';
 
 // ── Cluster IDs ────────────────────────────────────────────────────────────
 

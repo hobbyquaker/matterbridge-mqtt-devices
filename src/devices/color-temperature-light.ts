@@ -3,8 +3,8 @@ import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matter
 import type { AnyHandler, ColorTempRequest, DeviceContext, DeviceDescriptor, HueSatRequest, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const colorlightDescriptor: DeviceDescriptor = {
-  type: 'colorlight',
+export const colorTemperatureLightDescriptor: DeviceDescriptor = {
+  type: 'color-temperature-light',
   editableKeys: [
     ...COMMON_KEYS,
     'stateTopic',

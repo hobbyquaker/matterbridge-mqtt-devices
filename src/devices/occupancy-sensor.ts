@@ -3,8 +3,8 @@ import { MatterbridgeEndpoint, occupancySensor, powerSource } from 'matterbridge
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const occupancyDescriptor: DeviceDescriptor = {
-  type: 'occupancy',
+export const occupancySensorDescriptor: DeviceDescriptor = {
+  type: 'occupancy-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadOn', 'payloadOff'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

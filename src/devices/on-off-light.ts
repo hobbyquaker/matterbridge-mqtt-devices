@@ -1,10 +1,10 @@
-import { MatterbridgeEndpoint, onOffOutlet, powerSource } from 'matterbridge';
+import { MatterbridgeEndpoint, onOffLight, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const outletDescriptor: DeviceDescriptor = {
-  type: 'outlet',
+export const onOffLightDescriptor: DeviceDescriptor = {
+  type: 'on-off-light',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'commandTopic', 'payloadOn', 'payloadOff', 'retain'],
   applyDefaults(cfg, baseTopic) {
     return { commandTopic: cfg.commandTopic ?? `${baseTopic}/set` };
@@ -13,8 +13,8 @@ export const outletDescriptor: DeviceDescriptor = {
     const ON = cfg.payloadOn ?? 'ON';
     const OFF = cfg.payloadOff ?? 'OFF';
 
-    const ep = new MatterbridgeEndpoint([onOffOutlet, powerSource]);
-    ctx.initEp(ep, cfg, 0x8000);
+    const ep = new MatterbridgeEndpoint([onOffLight, powerSource]);
+    ctx.initEp(ep, cfg, 0x800b);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();
 
@@ -45,6 +45,6 @@ export const outletDescriptor: DeviceDescriptor = {
     await ctx.registerDevice(ep);
     ctx.subscribeToAvailabilityAndBattery(ep, cfg);
     ctx.endpointMap.set(cfg.id ?? '', ep);
-    ctx.log.info(`? outlet "${cfg.name}"`);
+    ctx.log.info(`? on/off light "${cfg.name}"`);
   },
 };

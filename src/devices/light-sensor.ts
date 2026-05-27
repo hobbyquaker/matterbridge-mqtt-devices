@@ -16,7 +16,7 @@ function luxToMatter(lux: number): number {
 }
 
 export const lightSensorDescriptor: DeviceDescriptor = {
-  type: 'light_sensor',
+  type: 'light-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

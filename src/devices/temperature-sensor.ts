@@ -3,8 +3,8 @@ import { MatterbridgeEndpoint, powerSource, temperatureSensor } from 'matterbrid
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
-export const temperatureDescriptor: DeviceDescriptor = {
-  type: 'temperature',
+export const temperatureSensorDescriptor: DeviceDescriptor = {
+  type: 'temperature-sensor',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};

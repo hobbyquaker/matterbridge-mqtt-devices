@@ -7,7 +7,7 @@ import { CID, COMMON_KEYS } from './types.js';
 const LOCK_STATE = { NotFullyLocked: 0, Locked: 1, Unlocked: 2 } as const;
 
 export const doorLockDescriptor: DeviceDescriptor = {
-  type: 'door_lock',
+  type: 'door-lock',
   editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'commandTopic', 'payloadLocked', 'payloadUnlocked', 'retain'],
   applyDefaults(cfg, baseTopic) {
     return { commandTopic: cfg.commandTopic ?? `${baseTopic}/set` };
