@@ -959,7 +959,6 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         });
       }
     }
-
   }
 
   // ── Device factory ─────────────────────────────────────────────────────────
