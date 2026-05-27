@@ -482,6 +482,9 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
     button { border: 0; border-radius: 8px; background: #1f6feb; color: #fff; padding: 10px 14px; font-weight: 600; cursor: pointer; }
     .status { font-size: 13px; color: #4a5a78; }
+    .hint-btn { background: none; border: none; color: #8896b0; cursor: pointer; font-size: 12px; padding: 0 0 0 4px; line-height: 1; vertical-align: middle; }
+    .hint-btn:hover { color: #1f6feb; }
+    .hint-popup { position: fixed; z-index: 9999; background: #1a2233; color: #e8ecf4; border-radius: 8px; padding: 10px 14px; font-size: 12px; max-width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,.3); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .field.full { grid-column: span 1; } .section-label { grid-column: span 1; } }
   </style>
 </head>
@@ -507,6 +510,265 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     const GROUP_LABELS = { publish: 'Publish Topics', subscribe: 'Subscribe Topics & Paths', settings: 'Settings' };
 
     const BATTERY_KEYS = ['topicBattery','payloadBatteryJsonPath','batteryValueBased','batteryMin','batteryMax','payloadBatteryFull','payloadBatteryEmpty'];
+
+    // ── Field hints ───────────────────────────────────────────────────────────
+    const FIELD_HINTS = {
+      // ── Common availability & battery ──────────────────────────────────────
+      topicAvailability:           'Subscribe: receives device online/offline status.\nPayload compared against payloadOnline value.',
+      payloadAvailabilityJsonPath: 'JSON path inside the availability payload to extract the status string.\nExample: state   or   sensor.status',
+      payloadOnline:               'Payload value that means the device is online.\nDefault: "online"',
+      payloadOffline:              'Payload value that means the device is offline.\nDefault: "offline"',
+      topicBattery:                'Subscribe: receives battery state updates.',
+      payloadBatteryJsonPath:      'JSON path inside the battery payload to extract the value.\nExample: battery   or   data.level',
+      batteryValueBased:           'true  → expect a numeric 0–100 value (or batteryMin–batteryMax range).\nfalse → expect payloadBatteryFull / payloadBatteryEmpty strings.',
+      batteryMin:                  'Raw MQTT value mapped to 0 % (empty). Default: 0',
+      batteryMax:                  'Raw MQTT value mapped to 100 % (full). Default: 100',
+      payloadBatteryFull:          'Payload that means battery is full (batteryValueBased = false).\nDefault: "full"',
+      payloadBatteryEmpty:         'Payload that means battery is empty (batteryValueBased = false).\nDefault: "empty"',
+      // ── Common settings ────────────────────────────────────────────────────
+      powerSource:                 'Reported power source for this device.\nOptions: battery | mains\nDefault: not set',
+      serial:                      'Serial number override. Leave blank to auto-generate from device id.',
+      // ── On/Off ────────────────────────────────────────────────────────────
+      topicSetOnOff:               'Publish: sends on/off commands.\nPayload: payloadOn or payloadOff value.',
+      topicOnOff:                  'Subscribe: receives current on/off state.',
+      payloadOnOffJsonPath:        'JSON path inside the on/off payload to extract the state string.\nExample: state   or   switch.value',
+      payloadOn:                   'Payload string for "on" state.\nDefault: "ON"',
+      payloadOff:                  'Payload string for "off" state.\nDefault: "OFF"',
+      retain:                      'true → publish commands with the MQTT retain flag.\nDefault: false',
+      // ── Brightness / Level ─────────────────────────────────────────────────
+      topicCurrentLevel:           'Subscribe: receives current brightness level.',
+      payloadCurrentLevelJsonPath: 'JSON path inside the level payload to extract the numeric value.',
+      topicMoveToLevel:            'Publish: sends brightness-set commands (level only).',
+      topicMoveToLevelWithOnOff:   'Publish: sends brightness-set commands that also toggle on/off.',
+      brightnessMin:               'MQTT value that maps to Matter level 0 (off / minimum).\nDefault: 0',
+      brightnessMax:               'MQTT value that maps to Matter level 254 (maximum).\nDefault: 254',
+      // ── Color ─────────────────────────────────────────────────────────────
+      topicColor:                  'Subscribe: receives current color state (JSON object).',
+      payloadColorJsonPath:        'JSON path inside the color payload to extract the color object.',
+      topicSetColor:               'Publish: sends color commands.\nFormats:\n• Hue+Sat: {"hue":0–360, "saturation":0–100}\n• Color temp: {"colorTemp":153–500} (mireds)\n• XY: {"x":0.0–1.0, "y":0.0–1.0}',
+      // ── Cover / Window-covering ────────────────────────────────────────────
+      topicSetCoverState:          'Publish: sends combined open/close/stop commands.\nPayload: payloadOpen, payloadClosed, or payloadStop.',
+      topicSetCoverStateOpen:      'Publish: dedicated topic for "open" command only (optional).\nPayload: payloadOpen value.',
+      topicSetCoverStateClose:     'Publish: dedicated topic for "close" command only (optional).\nPayload: payloadClosed value.',
+      topicSetCoverStateStop:      'Publish: dedicated topic for "stop" command only (optional).\nPayload: payloadStop value.\nLeave blank to send stop via topicSetCoverState.',
+      topicCoverState:             'Subscribe: receives current cover state string.',
+      payloadCoverStateJsonPath:   'JSON path inside the cover-state payload to extract the state.',
+      topicCoverStateOpen:         'Subscribe: any payload on this topic is treated as "open".',
+      topicCoverStateClose:        'Subscribe: any payload on this topic is treated as "closed".',
+      topicCoverStateStop:         'Subscribe: any payload on this topic is treated as "stopped".',
+      topicPosition:               'Subscribe: receives current position value.',
+      payloadPositionJsonPath:     'JSON path inside the position payload to extract the numeric value.',
+      topicSetPosition:            'Publish: sends position-set commands.\nPayload: numeric value in positionMin–positionMax range.',
+      positionMin:                 'MQTT value for the fully open position.\nDefault: 0',
+      positionMax:                 'MQTT value for the fully closed position.\nDefault: 100',
+      topicTiltState:              'Subscribe: receives tilt state string.',
+      payloadTiltStateJsonPath:    'JSON path inside the tilt-state payload to extract the state.',
+      topicSetTiltState:           'Publish: sends combined tilt state commands.',
+      topicTilt:                   'Subscribe: receives current tilt angle value.',
+      payloadTiltJsonPath:         'JSON path inside the tilt payload to extract the numeric value.',
+      topicSetTilt:                'Publish: sends tilt-angle set commands.\nPayload: numeric value in tiltMin–tiltMax range.',
+      tiltMin:                     'MQTT value for 0 % tilt (fully untilted).\nDefault: 0',
+      tiltMax:                     'MQTT value for 100 % tilt (fully tilted).\nDefault: 100',
+      topicSafetyStatus:           'Subscribe: receives safety status bitmask value.',
+      payloadSafetyStatusJsonPath: 'JSON path inside the safety-status payload.',
+      topicSetSafetyStatus:        'Publish: sends safety status commands.',
+      payloadOpen:                 'Payload for "open" command.\nDefault: "OPEN"',
+      payloadClosed:               'Payload for "close" command.\nDefault: "CLOSE"',
+      payloadStop:                 'Payload for "stop" command.\nDefault: "STOP"',
+      // ── Closure ───────────────────────────────────────────────────────────
+      topicSetClosureState:        'Publish: sends combined open/close/stop commands.\nPayload: payloadOpen, payloadClosed, or payloadStop.',
+      topicSetClosureStateOpen:    'Publish: dedicated topic for "open" command only (optional).\nPayload: payloadOpen value.',
+      topicSetClosureStateClose:   'Publish: dedicated topic for "close" command only (optional).\nPayload: payloadClosed value.',
+      topicSetClosureStateStop:    'Publish: dedicated topic for "stop" command only (optional).\nPayload: payloadStop value.\nLeave blank to send stop via topicSetClosureState.',
+      topicClosureState:           'Subscribe: receives current closure state string.',
+      payloadClosureStateJsonPath: 'JSON path inside the closure-state payload.',
+      topicClosureStateOpen:       'Subscribe: any payload on this topic is treated as "open".',
+      topicClosureStateClose:      'Subscribe: any payload on this topic is treated as "closed".',
+      topicClosureStateStop:       'Subscribe: any payload on this topic is treated as "stopped".',
+      topicSetLatch:               'Publish: sends latch commands.',
+      topicLatch:                  'Subscribe: receives latch state.',
+      payloadLatchJsonPath:        'JSON path inside the latch payload.',
+      topicMainState:              'Subscribe: receives main-state value for the closure.',
+      payloadMainStateJsonPath:    'JSON path inside the main-state payload.',
+      // ── Speed / Fan ───────────────────────────────────────────────────────
+      topicSpeed:                  'Subscribe: receives current speed/level value.',
+      payloadSpeedJsonPath:        'JSON path inside the speed payload to extract the numeric value.',
+      topicSetSpeed:               'Publish: sends speed-set commands.\nFan payload: {"level":N, "percent":P}\nAir-purifier / extractor-hood: plain percentage 0–100.',
+      topicSetSpeedStep:           'Publish: sends incremental speed step.\nPayload: "+1" to increase, "-1" to decrease.',
+      speedMin:                    'MQTT level value for minimum speed (maps to 0 %).\nDefault: 0',
+      speedMax:                    'MQTT level value for maximum speed (maps to 100 %).\nDefault: 5',
+      topicFanMode:                'Subscribe: receives current fan mode string.',
+      payloadFanModeJsonPath:      'JSON path inside the fan-mode payload.',
+      topicSetFanMode:             'Publish: sends fan mode commands.\nValues: off | low | medium | high | on | auto | smart',
+      // ── Temperature / Thermostat ───────────────────────────────────────────
+      topicLocalTemp:              'Subscribe: receives local/ambient temperature in °C.',
+      payloadLocalTempJsonPath:    'JSON path inside the local-temp payload.',
+      topicTargetTemp:             'Subscribe: receives heating setpoint in °C.',
+      payloadTargetTempJsonPath:   'JSON path inside the target-temp payload.',
+      topicSetTargetTemp:          'Publish: sends heating setpoint.\nPayload: numeric °C value.',
+      topicCoolingSetpoint:        'Subscribe: receives cooling setpoint in °C.',
+      payloadCoolingSetpointJsonPath: 'JSON path inside the cooling-setpoint payload.',
+      topicSetCoolingSetpoint:     'Publish: sends cooling setpoint.\nPayload: numeric °C value.',
+      topicSystemMode:             'Subscribe: receives current thermostat system mode.',
+      payloadSystemModeJsonPath:   'JSON path inside the system-mode payload.',
+      topicSetSystemMode:          'Publish: sends system mode commands.\nValues: off | heat | cool | auto | fan_only | dry | sleep | heat_cool',
+      topicRunningState:           'Subscribe: receives thermostat running state.',
+      payloadRunningStateJsonPath: 'JSON path inside the running-state payload.',
+      topicTemperatureLevel:       'Subscribe: receives temperature level setting.',
+      payloadTemperatureLevelJsonPath: 'JSON path inside the temperature-level payload.',
+      topicSetTemperatureLevel:    'Publish: sends temperature level commands.',
+      // ── Sensors ───────────────────────────────────────────────────────────
+      topicTemperature:            'Subscribe: receives temperature measurement in °C.',
+      payloadTemperatureJsonPath:  'JSON path inside the temperature payload.',
+      topicTemperatureFreezer:     'Subscribe: receives freezer temperature in °C.',
+      payloadTemperatureFreezerJsonPath: 'JSON path inside the freezer-temperature payload.',
+      topicHumidity:               'Subscribe: receives relative humidity in %.',
+      payloadHumidityJsonPath:     'JSON path inside the humidity payload.',
+      topicIlluminance:            'Subscribe: receives illuminance in lux.',
+      payloadIlluminanceJsonPath:  'JSON path inside the illuminance payload.',
+      topicMoisture:               'Subscribe: receives soil/surface moisture value.',
+      payloadMoistureJsonPath:     'JSON path inside the moisture payload.',
+      topicPressure:               'Subscribe: receives pressure in kPa.',
+      payloadPressureJsonPath:     'JSON path inside the pressure payload.',
+      topicFlow:                   'Subscribe: receives flow rate.',
+      payloadFlowJsonPath:         'JSON path inside the flow payload.',
+      topicOpenLevel:              'Subscribe: receives open-level percentage.',
+      payloadOpenLevelJsonPath:    'JSON path inside the open-level payload.',
+      topicAirQuality:             'Subscribe: receives air quality index (0–5).\n0=unknown 1=good 2=fair 3=moderate 4=poor 5=very poor',
+      payloadAirQualityJsonPath:   'JSON path inside the air-quality payload.',
+      topicTvoc:                   'Subscribe: receives total VOC in µg/m³.',
+      payloadTvocJsonPath:         'JSON path inside the TVOC payload.',
+      topicCo2:                    'Subscribe: receives CO₂ concentration in ppm.',
+      payloadCo2JsonPath:          'JSON path inside the CO₂ payload.',
+      topicPm25:                   'Subscribe: receives PM2.5 concentration in µg/m³.',
+      payloadPm25JsonPath:         'JSON path inside the PM2.5 payload.',
+      topicOccupancy:              'Subscribe: receives occupancy state.',
+      payloadOccupancyJsonPath:    'JSON path inside the occupancy payload.',
+      topicContactState:           'Subscribe: receives contact state.',
+      payloadContactStateJsonPath: 'JSON path inside the contact-state payload.',
+      // ── Door lock ─────────────────────────────────────────────────────────
+      topicLockState:              'Subscribe: receives current lock state.',
+      payloadLockStateJsonPath:    'JSON path inside the lock-state payload.',
+      topicSetLockState:           'Publish: sends lock commands.\nPayload: payloadLocked or payloadUnlocked value.',
+      payloadLocked:               'Payload for "locked" state.\nDefault: "LOCK"',
+      payloadUnlocked:             'Payload for "unlocked" state.\nDefault: "UNLOCK"',
+      payloadNotFullyLocked:       'Payload for "not fully locked" state.\nDefault: "NOT_FULLY_LOCKED"',
+      topicDoorState:              'Subscribe: receives physical door open/closed state.',
+      payloadDoorStateJsonPath:    'JSON path inside the door-state payload.',
+      payloadDoorOpen:             'Payload for door open.\nDefault: "OPEN"',
+      payloadDoorClosed:           'Payload for door closed.\nDefault: "CLOSED"',
+      // ── Generic switch ────────────────────────────────────────────────────
+      topicAction:                 'Subscribe: receives button action events.',
+      payloadActionJsonPath:       'JSON path inside the action payload to extract the action string.',
+      topicActionPress:            'Subscribe: any payload on this topic triggers a single press.',
+      topicActionDouble:           'Subscribe: any payload on this topic triggers a double press.',
+      topicActionLong:             'Subscribe: any payload on this topic triggers a long press.',
+      topicActionInitialPress:     'Subscribe: any payload on this topic triggers an initial press.',
+      topicActionLongRelease:      'Subscribe: any payload on this topic triggers a long release.',
+      payloadPress:                'Payload that maps to single press.\nDefault: "press"',
+      payloadDouble:               'Payload that maps to double press.\nDefault: "double"',
+      payloadLong:                 'Payload that maps to long press.\nDefault: "long"',
+      payloadInitialPress:         'Payload that maps to initial press.\nDefault: "initial_press"',
+      payloadLongRelease:          'Payload that maps to long press release.\nDefault: "long_release"',
+      // ── Smoke/CO alarm ────────────────────────────────────────────────────
+      topicSmokeAlarm:             'Subscribe: receives smoke alarm state.',
+      payloadSmokeAlarmJsonPath:   'JSON path inside the smoke-alarm payload.',
+      topicCo:                     'Subscribe: receives CO alarm state.',
+      payloadCoJsonPath:           'JSON path inside the CO payload.',
+      topicBatteryAlert:           'Subscribe: receives battery alert state.',
+      payloadBatteryAlertJsonPath: 'JSON path inside the battery-alert payload.',
+      topicHardwareFault:          'Subscribe: receives hardware fault state.',
+      payloadHardwareFaultJsonPath:'JSON path inside the hardware-fault payload.',
+      topicTestInProgress:         'Subscribe: receives test-in-progress state.',
+      payloadTestInProgressJsonPath:'JSON path inside the test-in-progress payload.',
+      payloadAlarmNormal:          'Payload for alarm clear / normal state.\nDefault: "normal"',
+      payloadAlarmWarning:         'Payload for alarm warning state.\nDefault: "warning"',
+      payloadAlarmCritical:        'Payload for alarm critical state.\nDefault: "critical"',
+      // ── Operational state ─────────────────────────────────────────────────
+      topicOperationalState:       'Subscribe: receives current operational state string.',
+      payloadOperationalStateJsonPath: 'JSON path inside the operational-state payload.',
+      topicSetOperationalState:    'Publish: sends operational state commands.',
+      payloadRunning:              'Payload for "running" state.\nDefault: "running"',
+      payloadStopped:              'Payload for "stopped" state.\nDefault: "stopped"',
+      payloadPaused:               'Payload for "paused" state.\nDefault: "paused"',
+      topicCountdownTime:          'Subscribe: receives remaining countdown time (seconds).',
+      payloadCountdownTimeJsonPath:'JSON path inside the countdown-time payload.',
+      topicCurrentPhase:           'Subscribe: receives current operational phase name.',
+      payloadCurrentPhaseJsonPath: 'JSON path inside the current-phase payload.',
+      topicOperationalError:       'Subscribe: receives operational error state.',
+      payloadOperationalErrorJsonPath: 'JSON path inside the operational-error payload.',
+      // ── Washer / Dryer ────────────────────────────────────────────────────
+      topicWasherMode:             'Subscribe: receives current washer mode.',
+      payloadWasherModeJsonPath:   'JSON path inside the washer-mode payload.',
+      topicSetWasherMode:          'Publish: sends washer mode commands.',
+      topicSpinSpeed:              'Subscribe: receives spin speed setting.',
+      payloadSpinSpeedJsonPath:    'JSON path inside the spin-speed payload.',
+      topicNumberOfRinses:         'Subscribe: receives number of rinses setting.',
+      payloadNumberOfRinsesJsonPath:'JSON path inside the number-of-rinses payload.',
+      topicDrynessLevel:           'Subscribe: receives dryness level setting.',
+      payloadDrynessLevelJsonPath: 'JSON path inside the dryness-level payload.',
+      // ── Dishwasher ────────────────────────────────────────────────────────
+      topicDishwasherMode:         'Subscribe: receives current dishwasher mode.',
+      payloadDishwasherModeJsonPath:'JSON path inside the dishwasher-mode payload.',
+      topicSetDishwasherMode:      'Publish: sends dishwasher mode commands.',
+      topicDishwasherAlarm:        'Subscribe: receives dishwasher alarm state.',
+      payloadDishwasherAlarmJsonPath:'JSON path inside the dishwasher-alarm payload.',
+      // ── Oven / Microwave ──────────────────────────────────────────────────
+      topicOvenMode:               'Subscribe: receives current oven mode.',
+      payloadOvenModeJsonPath:     'JSON path inside the oven-mode payload.',
+      topicSetOvenMode:            'Publish: sends oven mode commands.',
+      topicMicrowaveMode:          'Subscribe: receives current microwave mode.',
+      payloadMicrowaveModeJsonPath:'JSON path inside the microwave-mode payload.',
+      topicCookTime:               'Subscribe: receives cook time in seconds.',
+      payloadCookTimeJsonPath:     'JSON path inside the cook-time payload.',
+      topicSelectedWattIndex:      'Subscribe: receives selected wattage index.',
+      payloadSelectedWattIndexJsonPath:'JSON path inside the selected-watt-index payload.',
+      // ── Media / Speaker ───────────────────────────────────────────────────
+      topicPlaybackState:          'Subscribe: receives current playback state.',
+      payloadPlaybackJsonPath:     'JSON path inside the playback-state payload.',
+      topicSetPlaybackState:       'Publish: sends playback state commands.',
+      topicSetPlaybackCmd:         'Publish: sends playback control commands (play/pause/stop/next/prev).',
+      topicSetMediaSeek:           'Publish: sends media seek position in seconds.',
+      topicVolume:                 'Subscribe: receives current volume level (0–100).',
+      payloadVolumeJsonPath:       'JSON path inside the volume payload.',
+      topicSetVolume:              'Publish: sends volume set commands.\nPayload: numeric 0–100.',
+      // ── Electrical ────────────────────────────────────────────────────────
+      topicPower:                  'Subscribe: receives active power in watts.',
+      payloadPowerJsonPath:        'JSON path inside the power payload.',
+      topicVoltage:                'Subscribe: receives voltage in volts.',
+      payloadVoltageJsonPath:      'JSON path inside the voltage payload.',
+      topicCurrent:                'Subscribe: receives current in amperes.',
+      payloadCurrentJsonPath:      'JSON path inside the current payload.',
+      topicEnergy:                 'Subscribe: receives energy in kWh.',
+      payloadEnergyJsonPath:       'JSON path inside the energy payload.',
+      topicFrequency:              'Subscribe: receives line frequency in Hz.',
+      payloadFrequencyJsonPath:    'JSON path inside the frequency payload.',
+      // ── EVSE ──────────────────────────────────────────────────────────────
+      topicEvseState:              'Subscribe: receives EVSE charger state.',
+      payloadEvseStateJsonPath:    'JSON path inside the EVSE-state payload.',
+      // ── Composed device ───────────────────────────────────────────────────
+      components:                  'Active sub-component IDs for composed devices, comma-separated.\nExample: temperatureSensor,humiditySensor',
+      configUrl:                   'Custom URL for the device configuration page.\nLeave blank to use the auto-generated editor URL.',
+    };
+
+    // ── Hint popup ────────────────────────────────────────────────────────────
+    let activePopup = null;
+
+    function showHint(btn, key) {
+      if (activePopup) { activePopup.remove(); activePopup = null; }
+      const popup = document.createElement('div');
+      popup.className = 'hint-popup';
+      popup.textContent = FIELD_HINTS[key];
+      document.body.appendChild(popup);
+      const rect = btn.getBoundingClientRect();
+      let left = rect.left;
+      if (left + 328 > window.innerWidth) left = Math.max(4, window.innerWidth - 332);
+      popup.style.top = (rect.bottom + 6) + 'px';
+      popup.style.left = left + 'px';
+      activePopup = popup;
+    }
+
+    document.addEventListener('click', function() { if (activePopup) { activePopup.remove(); activePopup = null; } });
 
     // Build a map: key → [componentId, ...] for composed devices
     const keyToComponents = {};
@@ -550,7 +812,16 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       if (BATTERY_KEYS.includes(key)) wrap.dataset.battery = '1';
       if (keyToComponents[key]) wrap.dataset.for = keyToComponents[key].join(' ');
       const label = document.createElement('label');
-      label.textContent = key;
+      label.appendChild(document.createTextNode(key));
+      if (FIELD_HINTS[key]) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'hint-btn';
+        btn.title = 'Show hint';
+        btn.textContent = '\u24d8';
+        btn.addEventListener('click', function(e) { e.stopPropagation(); showHint(btn, key); });
+        label.appendChild(btn);
+      }
       let input;
       if (key === 'powerSource') {
         input = document.createElement('select');
