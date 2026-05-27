@@ -7,7 +7,7 @@ export const humiditySensorDescriptor: DeviceDescriptor = {
   type: 'humidity-sensor',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicHumidity', 'payloadHumidityJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -19,9 +19,9 @@ export const humiditySensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultRelativeHumidityMeasurementClusterServer(5000);
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const h = ctx.parseFloatPayload(p, ['humidity', 'value'], cfg.payloadOnOffJsonPath);
+    if (cfg.topicHumidity) {
+      ctx.subscribe(cfg.topicHumidity, (p) => {
+        const h = ctx.parseFloatPayload(p, ['humidity', 'value'], cfg.payloadHumidityJsonPath);
         if (h !== null && !isNaN(h)) {
           ctx.log.info(`[${cfg.name}] ? ${h}%`);
           ctx.setAttr(ep, CID.RelativeHumidityMeasurement, 'measuredValue', Math.round(h * 100));

@@ -19,7 +19,7 @@ export const lightSensorDescriptor: DeviceDescriptor = {
   type: 'light-sensor',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicIlluminance', 'payloadIlluminanceJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -31,9 +31,9 @@ export const lightSensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultIlluminanceMeasurementClusterServer(1, 1, 0xfffe);
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const lux = ctx.parseFloatPayload(p, [], cfg.payloadOnOffJsonPath);
+    if (cfg.topicIlluminance) {
+      ctx.subscribe(cfg.topicIlluminance, (p) => {
+        const lux = ctx.parseFloatPayload(p, [], cfg.payloadIlluminanceJsonPath);
         if (lux !== null && !isNaN(lux)) {
           const mv = luxToMatter(lux);
           ctx.log.info(`[${cfg.name}] ? ${lux} lux ? measuredValue ${mv}`);

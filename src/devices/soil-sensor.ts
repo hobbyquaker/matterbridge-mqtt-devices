@@ -16,7 +16,7 @@ export const soilSensorDescriptor: DeviceDescriptor = {
   type: 'soil-sensor',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicMoisture', 'payloadMoistureJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -29,9 +29,9 @@ export const soilSensorDescriptor: DeviceDescriptor = {
     // Proxy: RelativeHumidityMeasurement represents soil moisture 0�100 %
     ep.createDefaultRelativeHumidityMeasurementClusterServer(0);
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const raw = ctx.parseFloatPayload(p, [], cfg.payloadOnOffJsonPath);
+    if (cfg.topicMoisture) {
+      ctx.subscribe(cfg.topicMoisture, (p) => {
+        const raw = ctx.parseFloatPayload(p, [], cfg.payloadMoistureJsonPath);
         if (raw !== null && !isNaN(raw)) {
           const clamped = Math.max(0, Math.min(100, raw));
           const mv = Math.round(clamped * 100); // 0�10000 (Matter units)

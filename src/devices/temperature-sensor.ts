@@ -7,7 +7,7 @@ export const temperatureSensorDescriptor: DeviceDescriptor = {
   type: 'temperature-sensor',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicTemperature', 'payloadTemperatureJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -19,9 +19,9 @@ export const temperatureSensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultTemperatureMeasurementClusterServer(2000);
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'value'], cfg.payloadOnOffJsonPath);
+    if (cfg.topicTemperature) {
+      ctx.subscribe(cfg.topicTemperature, (p) => {
+        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'value'], cfg.payloadTemperatureJsonPath);
         if (c !== null && !isNaN(c)) {
           ctx.log.info(`[${cfg.name}] ? ${c}�C`);
           ctx.setAttr(ep, CID.TemperatureMeasurement, 'measuredValue', Math.round(c * 100));

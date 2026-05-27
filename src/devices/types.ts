@@ -62,6 +62,16 @@ export interface MqttDeviceConfig {
   payloadOff?: string;
   retain?: boolean;
 
+  // measurement sensors
+  topicTemperature?: string;
+  payloadTemperatureJsonPath?: string;
+  topicHumidity?: string;
+  payloadHumidityJsonPath?: string;
+  topicIlluminance?: string;
+  payloadIlluminanceJsonPath?: string;
+  topicMoisture?: string;
+  payloadMoistureJsonPath?: string;
+
   // availability / online state
   topicAvailability?: string;
   payloadAvailabilityJsonPath?: string;
@@ -158,6 +168,14 @@ export interface MqttDeviceConfig {
 // ── Editable keys for the web editor ──────────────────────────────────────
 
 export type EditableDeviceKey =
+  | 'topicTemperature'
+  | 'payloadTemperatureJsonPath'
+  | 'topicHumidity'
+  | 'payloadHumidityJsonPath'
+  | 'topicIlluminance'
+  | 'payloadIlluminanceJsonPath'
+  | 'topicMoisture'
+  | 'payloadMoistureJsonPath'
   | 'topicOnOff'
   | 'payloadOnOffJsonPath'
   | 'topicSetOnOff'
@@ -258,6 +276,14 @@ export const COMMON_SETTINGS_KEYS: readonly EditableDeviceKey[] = [
 
 /** All possible editable keys (union across all device types), used for safe deserialization. */
 export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
+  'topicTemperature',
+  'payloadTemperatureJsonPath',
+  'topicHumidity',
+  'payloadHumidityJsonPath',
+  'topicIlluminance',
+  'payloadIlluminanceJsonPath',
+  'topicMoisture',
+  'payloadMoistureJsonPath',
   'topicOnOff',
   'payloadOnOffJsonPath',
   'topicSetOnOff',
