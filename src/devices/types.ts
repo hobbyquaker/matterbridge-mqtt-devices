@@ -129,6 +129,8 @@ export interface MqttDeviceConfig {
   // measurement sensors
   topicTemperature?: string;
   payloadTemperatureJsonPath?: string;
+  topicTemperatureFreezer?: string;
+  payloadTemperatureFreezerJsonPath?: string;
   topicHumidity?: string;
   payloadHumidityJsonPath?: string;
   topicIlluminance?: string;
@@ -412,6 +414,8 @@ export interface MqttDeviceConfig {
 export type EditableDeviceKey =
   | 'topicTemperature'
   | 'payloadTemperatureJsonPath'
+  | 'topicTemperatureFreezer'
+  | 'payloadTemperatureFreezerJsonPath'
   | 'topicHumidity'
   | 'payloadHumidityJsonPath'
   | 'topicIlluminance'
@@ -647,6 +651,8 @@ export const COMMON_SETTINGS_KEYS: readonly EditableDeviceKey[] = [
 export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'topicTemperature',
   'payloadTemperatureJsonPath',
+  'topicTemperatureFreezer',
+  'payloadTemperatureFreezerJsonPath',
   'topicHumidity',
   'payloadHumidityJsonPath',
   'topicIlluminance',

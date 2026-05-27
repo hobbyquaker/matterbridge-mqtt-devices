@@ -7,7 +7,7 @@ export const waterHeaterDescriptor: DeviceDescriptor = {
   type: 'water-heater',
   editableKeys: {
     publish: ['topicSetTargetTemp'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLocalTemp', 'payloadLocalTempJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath', 'topicPower', 'payloadPowerJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLocalTemp', 'payloadLocalTempJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath', 'topicPower', 'payloadPowerJsonPath', 'topicVoltage', 'payloadVoltageJsonPath', 'topicCurrent', 'payloadCurrentJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'retain'],
   },
   applyDefaults(cfg, baseTopic) {
@@ -51,6 +51,20 @@ export const waterHeaterDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.topicPower, (p) => {
         const w = ctx.parseFloatPayload(p, ['power', 'heating_power', 'watt'], cfg.payloadPowerJsonPath);
         if (w !== null) ctx.setAttr(ep, CID.ElectricalPowerMeasurement, 'activePower', Math.round(w * 1000));
+      });
+    }
+
+    if (cfg.topicVoltage) {
+      ctx.subscribe(cfg.topicVoltage, (p) => {
+        const v = ctx.parseFloatPayload(p, ['voltage', 'volt'], cfg.payloadVoltageJsonPath);
+        if (v !== null) ctx.setAttr(ep, CID.ElectricalPowerMeasurement, 'voltage', Math.round(v * 1000));
+      });
+    }
+
+    if (cfg.topicCurrent) {
+      ctx.subscribe(cfg.topicCurrent, (p) => {
+        const a = ctx.parseFloatPayload(p, ['current', 'ampere'], cfg.payloadCurrentJsonPath);
+        if (a !== null) ctx.setAttr(ep, CID.ElectricalPowerMeasurement, 'activeCurrent', Math.round(a * 1000));
       });
     }
 
