@@ -13,10 +13,9 @@ A [Matterbridge](https://github.com/Luligu/matterbridge) plugin that exposes MQT
 ## Table of Contents
 
 - [Features](#features)
-- [Installation](#installation)
+- [Installation and Usage](#installation-and-usage)
 - [Plugin Configuration](#plugin-configuration)
 - [Device Types](#device-types)
-- [Common Device Options](#common-device-options)
 - [JSON Path Extraction](#json-path-extraction)
 - [Availability and Battery](#availability-and-battery)
 - [Composed Sensor](#composed-sensor)
