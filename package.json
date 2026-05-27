@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-mqtt-devices",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Matterbridge MQTT Devices Plugin",
   "author": "https://github.com/hobbyquaker",
   "license": "Apache-2.0",
