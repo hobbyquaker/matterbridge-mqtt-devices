@@ -1,11 +1,11 @@
-﻿import { lightSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { lightSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 /**
  * Convert lux to Matter IlluminanceMeasurement measuredValue.
- * measuredValue = 10000 × log10(lux) + 1  (min 1 for 0 lux; max 0xFFFE).
+ * measuredValue = 10000 � log10(lux) + 1  (min 1 for 0 lux; max 0xFFFE).
  *
  * @param {number} lux - Illuminance in lux.
  * @returns {number} The Matter measuredValue for the IlluminanceMeasurement cluster.
@@ -36,7 +36,6 @@ export const lightSensorDescriptor: DeviceDescriptor = {
         const lux = ctx.parseFloatPayload(p, [], cfg.payloadIlluminanceJsonPath);
         if (lux !== null && !isNaN(lux)) {
           const mv = luxToMatter(lux);
-          ctx.log.info(`[${cfg.name}] ? ${lux} lux ? measuredValue ${mv}`);
           ctx.setAttr(ep, CID.IlluminanceMeasurement, 'measuredValue', mv);
         }
       });

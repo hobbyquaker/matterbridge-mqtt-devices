@@ -25,6 +25,29 @@
       "description": "MQTT password",
       "type": "string"
     },
+    "debug": {
+      "description": "Enable debug logging (MQTT messages, parsed values)",
+      "type": "boolean",
+      "default": false
+    },
+    "whiteList": {
+      "description": "Device serials to enable (when not empty, only listed serials are included)",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "selectFrom": "serial"
+    },
+    "blackList": {
+      "description": "Device serials to exclude (listed serials are skipped)",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "selectFrom": "serial"
+    },
     "devices": {
       "description": "List of MQTT devices to expose as Matter devices",
       "type": "array",
@@ -35,30 +58,70 @@
             "description": "Device display name",
             "type": "string"
           },
+          "enabled": {
+            "description": "Whether this device is active (false = skip without removing from config)",
+            "type": "boolean",
+            "default": true
+          },
           "type": {
             "description": "Device type",
             "type": "string",
             "enum": [
               "dimmable-light",
               "color-temperature-light",
+              "extended-color-light",
               "on-off-outlet",
               "on-off-switch",
+              "on-off-mounted-switch",
               "on-off-light",
               "dimmable-outlet",
+              "dimmable-switch",
+              "dimmable-mounted-switch",
+              "color-temperature-switch",
               "generic-switch",
               "door-lock",
               "light-sensor",
               "rain-sensor",
               "water-leak-detector",
+              "water-freeze-detector",
+              "water-valve",
               "smoke-co-alarm",
               "soil-sensor",
               "temperature-sensor",
               "humidity-sensor",
+              "pressure-sensor",
+              "flow-sensor",
+              "air-quality-sensor",
               "contact-sensor",
               "occupancy-sensor",
               "fan",
-              "cover",
-              "thermostat"
+              "window-covering",
+              "thermostat",
+              "air-conditioner",
+              "air-purifier",
+              "electrical-sensor",
+              "closure",
+              "irrigation-system",
+              "pump",
+              "robotic-vacuum-cleaner",
+              "battery-storage",
+              "device-energy-management",
+              "evse",
+              "heat-pump",
+              "solar-power",
+              "water-heater",
+              "cooktop",
+              "dishwasher",
+              "extractor-hood",
+              "laundry-washer",
+              "laundry-dryer",
+              "microwave-oven",
+              "oven",
+              "refrigerator",
+              "basic-video-player",
+              "casting-video-player",
+              "speaker",
+              "composed"
             ]
           }
         },

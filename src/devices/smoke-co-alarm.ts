@@ -1,4 +1,4 @@
-﻿import { MatterbridgeEndpoint, powerSource, smokeCoAlarm } from 'matterbridge';
+import { MatterbridgeEndpoint, powerSource, smokeCoAlarm } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -25,7 +25,19 @@ export const smokeCoAlarmDescriptor: DeviceDescriptor = {
   type: 'smoke-co-alarm',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicSmokeAlarm', 'payloadSmokeAlarmJsonPath', 'topicCo', 'payloadCoJsonPath'],
+    subscribe: [
+      ...COMMON_SUBSCRIBE_KEYS,
+      'topicSmokeAlarm',
+      'payloadSmokeAlarmJsonPath',
+      'topicCo',
+      'payloadCoJsonPath',
+      'topicBatteryAlert',
+      'payloadBatteryAlertJsonPath',
+      'topicHardwareFault',
+      'payloadHardwareFaultJsonPath',
+      'topicTestInProgress',
+      'payloadTestInProgressJsonPath',
+    ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical'],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -45,7 +57,6 @@ export const smokeCoAlarmDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.topicSmokeAlarm, (p) => {
         const payload = String(ctx.extractPayloadValue(p, cfg.payloadSmokeAlarmJsonPath) ?? p).trim();
         const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
-        ctx.log.info(`[${cfg.name}] ? smokeState ${state} (payload "${payload}")`);
         ctx.setAttr(ep, CID.SmokeCoAlarm, 'smokeState', state);
       });
     }
@@ -53,8 +64,33 @@ export const smokeCoAlarmDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.topicCo, (p) => {
         const payload = String(ctx.extractPayloadValue(p, cfg.payloadCoJsonPath) ?? p).trim();
         const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
-        ctx.log.info(`[${cfg.name}] ? coState ${state} (payload "${payload}")`);
         ctx.setAttr(ep, CID.SmokeCoAlarm, 'coState', state);
+      });
+    }
+
+    if (cfg.topicBatteryAlert) {
+      ctx.subscribe(cfg.topicBatteryAlert, (p) => {
+        const payload = String(ctx.extractPayloadValue(p, cfg.payloadBatteryAlertJsonPath) ?? p).trim();
+        const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
+        ctx.setAttr(ep, CID.SmokeCoAlarm, 'batteryAlert', state);
+      });
+    }
+
+    if (cfg.topicHardwareFault) {
+      ctx.subscribe(cfg.topicHardwareFault, (p) => {
+        const payload = String(ctx.extractPayloadValue(p, cfg.payloadHardwareFaultJsonPath) ?? p).trim();
+        const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
+        ctx.setAttr(ep, CID.SmokeCoAlarm, 'hardwareFaultAlert', state);
+      });
+    }
+
+    if (cfg.topicTestInProgress) {
+      ctx.subscribe(cfg.topicTestInProgress, (p) => {
+        const raw = String(ctx.extractPayloadValue(p, cfg.payloadTestInProgressJsonPath) ?? p)
+          .trim()
+          .toLowerCase();
+        const active = raw === 'true' || raw === '1' || raw === 'on' || raw === 'yes';
+        ctx.setAttr(ep, CID.SmokeCoAlarm, 'testInProgress', active);
       });
     }
 

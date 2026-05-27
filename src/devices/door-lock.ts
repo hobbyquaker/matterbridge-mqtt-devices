@@ -1,4 +1,4 @@
-﻿import { doorLockDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { doorLockDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -10,8 +10,8 @@ export const doorLockDescriptor: DeviceDescriptor = {
   type: 'door-lock',
   editableKeys: {
     publish: ['topicSetLockState'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLockState', 'payloadLockStateJsonPath'],
-    settings: [...COMMON_SETTINGS_KEYS, 'payloadLocked', 'payloadUnlocked', 'payloadNotFullyLocked', 'retain'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLockState', 'payloadLockStateJsonPath', 'topicDoorState', 'payloadDoorStateJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadLocked', 'payloadUnlocked', 'payloadNotFullyLocked', 'payloadDoorOpen', 'payloadDoorClosed', 'retain'],
   },
   applyDefaults(cfg, baseTopic) {
     return { topicSetLockState: cfg.topicSetLockState ?? `${baseTopic}/set` };
@@ -20,6 +20,8 @@ export const doorLockDescriptor: DeviceDescriptor = {
     const LOCKED = cfg.payloadLocked ?? 'LOCK';
     const UNLOCKED = cfg.payloadUnlocked ?? 'UNLOCK';
     const NOT_FULLY_LOCKED = cfg.payloadNotFullyLocked ?? 'NOT_FULLY_LOCKED';
+    const DOOR_OPEN = cfg.payloadDoorOpen ?? 'OPEN';
+    const DOOR_CLOSED = cfg.payloadDoorClosed ?? 'CLOSED';
 
     const ep = new MatterbridgeEndpoint([doorLockDevice, powerSource]);
     ctx.initEp(ep, cfg, 0x800e);
@@ -27,15 +29,12 @@ export const doorLockDescriptor: DeviceDescriptor = {
     ep.createDefaultDoorLockClusterServer();
 
     ctx.onCmd(ep, 'lockDoor', () => {
-      ctx.log.info(`[${cfg.name}] ? LOCK`);
       if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, LOCKED, cfg.retain);
     });
     ctx.onCmd(ep, 'unlockDoor', () => {
-      ctx.log.info(`[${cfg.name}] ? UNLOCK`);
       if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, UNLOCKED, cfg.retain);
     });
     ctx.onCmd(ep, 'unlockWithTimeout', () => {
-      ctx.log.info(`[${cfg.name}] ? UNLOCK (with timeout)`);
       if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, UNLOCKED, cfg.retain);
     });
 
@@ -52,8 +51,24 @@ export const doorLockDescriptor: DeviceDescriptor = {
         } else {
           lockState = LOCK_STATE.NotFullyLocked;
         }
-        ctx.log.info(`[${cfg.name}] ? lockState ${lockState} (payload "${payload}")`);
         ctx.setAttr(ep, CID.DoorLock, 'lockState', lockState);
+      });
+    }
+
+    if (cfg.topicDoorState) {
+      ctx.subscribe(cfg.topicDoorState, (p) => {
+        const payload = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.payloadDoorStateJsonPath));
+        const u = payload.toUpperCase();
+        let doorState: number;
+        if (u === DOOR_OPEN.toUpperCase()) {
+          doorState = 0; // Open
+        } else if (u === DOOR_CLOSED.toUpperCase() || u === 'CLOSED' || u === 'CLOSE') {
+          doorState = 1; // Closed
+        } else {
+          const num = parseInt(payload, 10);
+          doorState = Number.isFinite(num) ? num : 5; // Unknown
+        }
+        ctx.setAttr(ep, CID.DoorLock, 'doorState', doorState);
       });
     }
 

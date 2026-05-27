@@ -12,12 +12,12 @@ import path from 'node:path';
 import type { PlatformConfig, PlatformMatterbridge } from 'matterbridge';
 import { getAttribute, MatterbridgeDynamicPlatform, MatterbridgeEndpoint, setAttribute } from 'matterbridge';
 // ── Logger ────────────────────────────────────────────────────────────────────
-import { AnsiLogger } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel } from 'matterbridge/logger';
 // ── MQTT ──────────────────────────────────────────────────────────────────────
 import mqtt, { IClientOptions, MqttClient } from 'mqtt';
 
-import type { AnyHandler, DeviceContext, EditableDeviceKey, EditableKeyGroups, MqttDeviceConfig } from './devices/index.js';
-// ── Device registry ───────────────────────────────────────────────────────────
+import type { AnyHandler, ComposedComponentDef, DeviceContext, EditableDeviceKey, EditableKeyGroups, MqttDeviceConfig } from './devices/index.js';
+// ── Device registry ───────────────────────────────────────────────────────────────
 import { ALL_EDITABLE_KEYS, findDescriptor, NUMBER_KEYS } from './devices/index.js';
 
 // ── Platform ──────────────────────────────────────────────────────────────────
@@ -31,6 +31,8 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   constructor(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
+    this.log.logName = 'MqttDevices';
+    if (this.config['debug']) this.log.logLevel = LogLevel.DEBUG;
     this.log.info('MqttPlatform created');
   }
 
@@ -40,6 +42,11 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`onStart: ${reason ?? '-'}`);
     await this.connectMqtt();
     this.attachDeviceEditor();
+
+    // Ensure whiteList and blackList are defined so the Matterbridge UI
+    // can show the enable/disable checkbox for each device.
+    if (!Array.isArray(this.config['whiteList'])) this.config['whiteList'] = [];
+    if (!Array.isArray(this.config['blackList'])) this.config['blackList'] = [];
 
     const devices: MqttDeviceConfig[] = (this.config['devices'] as MqttDeviceConfig[]) ?? [];
     if (!devices.length) {
@@ -113,10 +120,9 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       this.mqttClient.on('reconnect', () => this.log.warn('MQTT reconnecting…'));
       this.mqttClient.on('message', (topic, buf) => {
         const payload = buf.toString().trim();
-        this.log.debug(`← [${topic}] ${payload}`);
         const handlers = this.topicHandlers.get(topic);
         if (!handlers) {
-          this.log.warn(`← [${topic}] aucun handler enregistré pour ce topic`);
+          this.log.warn(`← [${topic}] no handler registered for this topic`);
           return;
         }
         handlers.forEach((h) => {
@@ -150,13 +156,27 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       return;
     }
     this.mqttClient.publish(topic, payload, { retain, qos: 1 });
-    if (this.config['debug']) this.log.debug(`→ [${topic}] ${payload}`);
+    this.log.debug(`→ [${topic}] ${payload}`);
   }
 
   // ── Device editor web UI ──────────────────────────────────────────────────
 
   private attachDeviceEditor(): void {
     if (this.editorAttachedServer) return;
+
+    // ── TECHNICAL DEBT ────────────────────────────────────────────────────────
+    // Matterbridge does not currently expose a plugin API for registering custom
+    // HTTP routes. As a workaround we locate the Express/HTTP server by scanning
+    // Node.js internal active handles (_getActiveHandles) and prepend our own
+    // listener directly on the server's 'request' event.
+    //
+    // This is fragile: it relies on a private Node.js API (_getActiveHandles),
+    // on implementation details of how Matterbridge attaches Express, and on the
+    // assumption that our listener runs before Express's catch-all static handler.
+    //
+    // Remove this workaround once upstream support is available:
+    //   https://github.com/Luligu/matterbridge/issues/561
+    // ─────────────────────────────────────────────────────────────────────────
 
     // this.matterbridge is getPlatformMatterbridge() — a plain data object, NOT the
     // Matterbridge class instance. frontend/httpServer are not accessible through it.
@@ -185,6 +205,27 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       if (res.writableEnded || !req.url) return;
       const pathname = new URL(req.url, 'http://127.0.0.1').pathname;
       if (pathname !== '/matterbridge-mqtt-config' && pathname !== '/api/matterbridge-mqtt-config') return;
+      // Express fires its own request listeners after our prependListener returns.
+      // Patch setHeader/write/end on this response instance so that Express cannot
+      // inject headers or a body into a response we have already claimed.
+      const origSetHeader = res.setHeader.bind(res);
+      const origWrite = res.write.bind(res) as typeof res.write;
+      const origEnd = res.end.bind(res) as typeof res.end;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (res as any).setHeader = (name: string, value: string | number | readonly string[]) => {
+        if (res.headersSent) return res;
+        return origSetHeader(name, value);
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (res as any).write = (...args: Parameters<typeof res.write>) => {
+        if (res.writableEnded) return true;
+        return origWrite(...args);
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (res as any).end = (...args: Parameters<typeof res.end>) => {
+        if (res.writableEnded) return res;
+        return origEnd(...args);
+      };
       void this.handleDeviceEditorRequest(req, res);
     };
 
@@ -234,49 +275,51 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         return;
       }
 
-      try {
-        await this.persistCurrentConfig();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.sendEditorJson(res, 500, { ok: false, error: `Save failed: ${message}` });
-        return;
-      }
-
+      // End the response synchronously so Express cannot race in and write an
+      // HTML body into the open socket between writeHead and our async res.end.
+      // The in-memory config is already updated by applyAdvancedValues; persist
+      // runs after the response is closed and logs any failure.
       this.sendEditorJson(res, 200, { ok: true });
+      void this.persistCurrentConfig().catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.log.error(`Failed to persist device config: ${message}`);
+      });
       return;
     }
 
     if (req.method === 'POST' && url.pathname === '/api/matterbridge-mqtt-config') {
+      // Claim the response before the first await (readRequestBody) so Express
+      // cannot race in and serve index.html while the body is being read.
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+
       const body = await this.readRequestBody(req);
       let payload: Record<string, unknown>;
       try {
         payload = JSON.parse(body) as Record<string, unknown>;
       } catch {
-        this.sendEditorJson(res, 400, { ok: false, error: 'Invalid JSON body' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON body' }));
         return;
       }
 
       const deviceId = String(payload['deviceId'] ?? '');
       if (!deviceId) {
-        this.sendEditorJson(res, 400, { ok: false, error: 'deviceId is required' });
+        res.end(JSON.stringify({ ok: false, error: 'deviceId is required' }));
         return;
       }
 
       const updated = this.applyAdvancedValues(deviceId, payload);
       if (!updated) {
-        this.sendEditorJson(res, 404, { ok: false, error: `Unknown device: ${deviceId}` });
+        res.end(JSON.stringify({ ok: false, error: `Unknown device: ${deviceId}` }));
         return;
       }
 
       try {
         await this.persistCurrentConfig();
+        res.end(JSON.stringify({ ok: true }));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        this.sendEditorJson(res, 500, { ok: false, error: `Save failed: ${message}` });
-        return;
+        res.end(JSON.stringify({ ok: false, error: `Save failed: ${message}` }));
       }
-
-      this.sendEditorJson(res, 200, { ok: true });
       return;
     }
 
@@ -349,6 +392,17 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
 
+      if (key === 'components') {
+        const raw = incoming === undefined || incoming === null ? '' : String(incoming).trim();
+        const ids = raw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (ids.length > 0) (cfg as unknown as Record<string, unknown>)[key] = ids;
+        else Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
+        continue;
+      }
+
       if (this.isNumberKey(key)) {
         const raw = incoming === undefined || incoming === null ? '' : String(incoming).trim();
         if (raw === '') {
@@ -388,14 +442,22 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     const cfg = this.findConfiguredDeviceById(deviceId);
     if (!cfg) return null;
 
+    const descriptor = findDescriptor(cfg.type);
+    const componentDefs: readonly ComposedComponentDef[] | null = descriptor?.componentDefs ?? null;
+
     const groups = this.getEditableKeyGroups(cfg.type);
     const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
     const values: Record<string, unknown> = {};
     for (const key of allKeys) values[key] = (cfg as unknown as Record<string, unknown>)[key] ?? '';
     values['retain'] = cfg.retain === true;
+    // Normalise components to a comma-separated string for the initial JS object
+    if (Array.isArray(values['components'])) {
+      values['components'] = (values['components'] as string[]).join(',');
+    }
 
     const title = `${cfg.name} (${cfg.type ?? 'on-off-outlet'})`;
     const initialJson = JSON.stringify(values);
+    const componentDefsJson = JSON.stringify(componentDefs);
 
     return `<!doctype html>
 <html lang="en">
@@ -413,7 +475,10 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field.full { grid-column: span 2; }
     label { font-size: 12px; color: #4a5a78; }
-    input { border: 1px solid #cfd6e4; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+    input, select { border: 1px solid #cfd6e4; border-radius: 8px; padding: 8px 10px; font-size: 14px; background: #fff; }
+    .comp-checks { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 6px 0; }
+    .comp-check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #1a2233; cursor: pointer; }
+    .comp-check input[type="checkbox"] { border: none; border-radius: 0; padding: 0; width: 16px; height: 16px; cursor: pointer; }
     .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
     button { border: 0; border-radius: 8px; background: #1f6feb; color: #fff; padding: 10px 14px; font-weight: 600; cursor: pointer; }
     .status { font-size: 13px; color: #4a5a78; }
@@ -425,6 +490,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     <h1>${this.escapeHtml(title)}</h1>
     <p>Edit advanced MQTT topics and payload mapping. Save persists to plugin config. Restart plugin to apply runtime changes.</p>
     <div class="grid" id="fields"></div>
+    <div class="grid" id="fields"></div>
     <div class="actions">
       <button id="saveBtn" type="button">Save</button>
       <span class="status" id="status">Ready</span>
@@ -434,23 +500,78 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     const deviceId = ${JSON.stringify(deviceId)};
     const groups = ${JSON.stringify(groups)};
     const initial = ${initialJson};
+    const componentDefs = ${componentDefsJson};
     const fields = document.getElementById('fields');
     const status = document.getElementById('status');
     const saveBtn = document.getElementById('saveBtn');
     const GROUP_LABELS = { publish: 'Publish Topics', subscribe: 'Subscribe Topics & Paths', settings: 'Settings' };
 
+    const BATTERY_KEYS = ['topicBattery','payloadBatteryJsonPath','batteryValueBased','batteryMin','batteryMax','payloadBatteryFull','payloadBatteryEmpty'];
+
+    // Build a map: key → [componentId, ...] for composed devices
+    const keyToComponents = {};
+    if (componentDefs) {
+      for (const comp of componentDefs) {
+        for (const key of [...comp.subscribeKeys, ...comp.settingsKeys]) {
+          if (!keyToComponents[key]) keyToComponents[key] = [];
+          keyToComponents[key].push(comp.id);
+        }
+      }
+    }
+
+    // Hidden input that holds the serialised component selection for the save handler
+    let componentsInput = null;
+
+    function updateComponentsInput() {
+      if (!componentsInput) return;
+      const active = [...document.querySelectorAll('[data-component]:checked')].map(el => el.dataset.component);
+      componentsInput.value = active.join(',');
+    }
+
+    function updateComponentVisibility() {
+      if (!componentDefs) return;
+      const active = new Set([...document.querySelectorAll('[data-component]:checked')].map(el => el.dataset.component));
+      document.querySelectorAll('[data-for]').forEach(el => {
+        const required = el.dataset.for.split(' ');
+        el.style.display = required.some(c => active.has(c)) ? '' : 'none';
+      });
+      updateComponentsInput();
+    }
+
+    function updateBatteryVisibility() {
+      const sel = document.querySelector('[name="powerSource"]');
+      const isMains = sel && sel.value === 'mains';
+      document.querySelectorAll('[data-battery]').forEach(el => { el.style.display = isMains ? 'none' : ''; });
+    }
+
     function makeField(key, value) {
       const wrap = document.createElement('div');
       wrap.className = 'field';
+      if (BATTERY_KEYS.includes(key)) wrap.dataset.battery = '1';
+      if (keyToComponents[key]) wrap.dataset.for = keyToComponents[key].join(' ');
       const label = document.createElement('label');
       label.textContent = key;
-      const input = document.createElement('input');
-      input.name = key;
-      if (key === 'retain' || key === 'batteryValueBased') {
+      let input;
+      if (key === 'powerSource') {
+        input = document.createElement('select');
+        input.name = key;
+        [['', '\u2014 not set \u2014'], ['battery', 'Battery'], ['mains', 'Mains']].forEach(([v, t]) => {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = t;
+          if (String(value ?? '') === v) opt.selected = true;
+          input.appendChild(opt);
+        });
+        input.addEventListener('change', updateBatteryVisibility);
+      } else if (key === 'retain' || key === 'batteryValueBased') {
+        input = document.createElement('input');
         input.type = 'checkbox';
+        input.name = key;
         input.checked = !!value;
       } else {
+        input = document.createElement('input');
         input.type = 'text';
+        input.name = key;
         input.value = value == null ? '' : String(value);
       }
       wrap.appendChild(label);
@@ -458,22 +579,68 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       return wrap;
     }
 
+    // Render component checkboxes panel (composed devices only)
+    if (componentDefs) {
+      const heading = document.createElement('div');
+      heading.className = 'section-label';
+      heading.textContent = 'Components';
+      fields.appendChild(heading);
+
+      const panelWrap = document.createElement('div');
+      panelWrap.className = 'field full';
+      const checksDiv = document.createElement('div');
+      checksDiv.className = 'comp-checks';
+
+      const activeComponents = new Set((initial['components'] || '').split(',').map(s => s.trim()).filter(Boolean));
+
+      for (const comp of componentDefs) {
+        const lbl = document.createElement('label');
+        lbl.className = 'comp-check';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.component = comp.id;
+        cb.checked = activeComponents.has(comp.id);
+        cb.addEventListener('change', updateComponentVisibility);
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(comp.label));
+        checksDiv.appendChild(lbl);
+      }
+
+      // Hidden input so the save handler can read the current selection via [name="components"]
+      componentsInput = document.createElement('input');
+      componentsInput.type = 'hidden';
+      componentsInput.name = 'components';
+      componentsInput.value = initial['components'] || '';
+
+      panelWrap.appendChild(checksDiv);
+      panelWrap.appendChild(componentsInput);
+      fields.appendChild(panelWrap);
+    }
+
     for (const [groupName, groupKeys] of Object.entries(groups)) {
       if (!groupKeys.length) continue;
+      // 'components' is rendered as checkboxes above — skip the normal field
+      const visibleKeys = groupKeys.filter(k => k !== 'components');
+      if (!visibleKeys.length) continue;
       const heading = document.createElement('div');
       heading.className = 'section-label';
       heading.textContent = GROUP_LABELS[groupName] ?? groupName;
       fields.appendChild(heading);
-      groupKeys.forEach((key) => fields.appendChild(makeField(key, initial[key])));
+      visibleKeys.forEach((key) => fields.appendChild(makeField(key, initial[key])));
     }
+
+    updateBatteryVisibility();
+    updateComponentVisibility();
 
     const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
 
     saveBtn.addEventListener('click', async () => {
+      updateComponentsInput();
       status.textContent = 'Saving...';
       const payload = { deviceId };
       allKeys.forEach((key) => {
         const input = document.querySelector('[name="' + key + '"]');
+        if (!input) return;
         payload[key] = (key === 'retain' || key === 'batteryValueBased') ? input.checked : input.value;
       });
 
@@ -511,11 +678,15 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   private setAttr(ep: MatterbridgeEndpoint, clusterId: number, attr: string, value: unknown): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const current = getAttribute(ep, clusterId as any, attr, undefined);
+    if (current === value) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     void setAttribute(ep, clusterId as any, attr, value as any, this.log);
   }
 
   private initEp(ep: MatterbridgeEndpoint, cfg: MqttDeviceConfig, productId: number): void {
-    ep.createDefaultBasicInformationClusterServer(cfg.name, `mqtt-${cfg.id}`, 0xfff1, 'MQTT-Bridge', productId, 'matterbridge-mqtt-devices');
+    const serial = cfg.type && cfg.serial ? `${cfg.type}:${cfg.serial}` : (cfg.serial ?? cfg.id ?? 'mqd-000');
+    ep.createDefaultBasicInformationClusterServer(cfg.name, serial, 0xfff1, 'MQTT-Bridge', productId, 'matterbridge-mqtt-devices');
     ep.createDefaultIdentifyClusterServer();
   }
 
@@ -601,16 +772,31 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       this.log.warn(`Unknown type "${cfg.type}" — skipping "${cfg.id}"`);
       return;
     }
-    await descriptor.create(this.createDeviceContext(), cfg);
+    await descriptor.create(this.createDeviceContext(cfg), cfg);
   }
 
-  private createDeviceContext(): DeviceContext {
+  private createDeviceContext(cfg: MqttDeviceConfig): DeviceContext {
+    const deviceSubscribe = (topic: string, handler: (p: string) => void): void => {
+      this.subscribe(topic, (payload) => {
+        this.log.debug(`[${cfg.name}] \u2190 ${topic} ${payload}`);
+        handler(payload);
+      });
+    };
+
+    const deviceSetAttr = (ep: MatterbridgeEndpoint, clusterId: number, attr: string, value: unknown): void => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const current = getAttribute(ep, clusterId as any, attr, undefined);
+      if (current === value) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      void setAttribute(ep, clusterId as any, attr, value as any, this.log);
+    };
+
     return {
       log: this.log,
-      subscribe: this.subscribe.bind(this),
+      subscribe: deviceSubscribe,
       publish: this.publish.bind(this),
       getAttr: this.getAttr.bind(this),
-      setAttr: this.setAttr.bind(this),
+      setAttr: deviceSetAttr,
       onCmd: this.onCmd.bind(this),
       initEp: this.initEp.bind(this),
       applyConfigUrl: this.applyConfigUrl.bind(this),
@@ -718,7 +904,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       const u = extracted.toUpperCase();
       if (u === 'ON' || u === '1' || u === 'TRUE') return true;
       if (u === 'OFF' || u === '0' || u === 'FALSE') return false;
-      this.log.warn(`parseOnOff: payload non reconnu "${extracted}" with path "${jsonPath}"`);
+      this.log.warn(`parseOnOff: unrecognized payload "${extracted}" with path "${jsonPath}"`);
       return null;
     }
 
@@ -733,7 +919,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     const u = extracted.toUpperCase();
     if (u === 'ON' || u === '1' || u === 'TRUE') return true;
     if (u === 'OFF' || u === '0' || u === 'FALSE') return false;
-    this.log.warn(`parseOnOff: payload non reconnu "${extracted}"`);
+    this.log.warn(`parseOnOff: unrecognized payload "${extracted}"`);
     return null;
   }
 
@@ -794,22 +980,28 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   private registerSelectableDevice(cfg: MqttDeviceConfig): void {
     const setSelectDevice = (this as unknown as { setSelectDevice?: (...args: unknown[]) => void }).setSelectDevice;
     if (typeof setSelectDevice !== 'function') return;
-    setSelectDevice.call(this, cfg.id, cfg.name, undefined, 'wifi');
+    const configUrl = this.buildDeviceConfigUrl(cfg);
+    const serial = cfg.serial ?? cfg.id ?? 'mqd-000';
+    const selector = cfg.type ? `${cfg.type}:${serial}` : serial;
+    setSelectDevice.call(this, selector, cfg.name, configUrl, 'wifi');
   }
 
   private isDeviceEnabled(cfg: MqttDeviceConfig): boolean {
+    if (cfg.enabled === false) return false;
     const validateDevice = (this as unknown as { validateDevice?: (selector: string | string[], strict?: boolean) => boolean }).validateDevice;
+    const serial = cfg.serial ?? cfg.id ?? 'mqd-000';
+    const selector = cfg.type ? `${cfg.type}:${serial}` : serial;
     if (typeof validateDevice === 'function') {
       return validateDevice.call(
         this,
-        [cfg.name, cfg.id].filter((v): v is string => v !== undefined),
+        [cfg.name, cfg.id, selector].filter((v): v is string => v !== undefined),
         true,
       );
     }
 
     const whiteList = this.getWhiteList();
     const blackList = this.getBlackList();
-    const selectors = [cfg.name, cfg.id].filter((value): value is string => typeof value === 'string' && value.trim() !== '');
+    const selectors = [cfg.name, cfg.id, selector].filter((value): value is string => typeof value === 'string' && value.trim() !== '');
 
     if (whiteList.length > 0 && !selectors.some((value) => whiteList.includes(value))) {
       return false;
@@ -824,6 +1016,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     const type = cfg.type ?? 'on-off-outlet';
     const name = (cfg.name ?? '').trim() || `Device ${index + 1}`;
     const id = (cfg.id ?? '').trim() || this.slugify(name) || `${type}_${index + 1}`;
+    const serial = `mqd-${String(index + 1).padStart(3, '0')}`;
     const baseTopic = `matterbridge/${id}`;
 
     const typeDefaults = findDescriptor(type)?.applyDefaults(cfg, baseTopic) ?? {};
@@ -832,6 +1025,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       ...cfg,
       ...typeDefaults,
       id,
+      serial,
       name,
       type,
       topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,

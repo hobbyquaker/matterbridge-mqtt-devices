@@ -1,5 +1,6 @@
 # Matterbridge Claude Instructions
 
+- At the start of each session, search the codebase for comments containing `TECHNICAL DEBT` and check whether the linked upstream issue has been resolved. If an issue is closed or the fix is released, notify the user and offer to remove the workaround.
 - Follow [STYLEGUIDE.md](../STYLEGUIDE.md) for code style, naming, JSDoc, validation, logging, and formatting expectations.
 - JSDoc requirements are enforced by ESLint. Treat missing or incomplete JSDoc on required APIs as a real lint issue, not optional documentation.
 - Import and export ordering are enforced by ESLint. Preserve the existing grouped and sorted order unless a change requires updating it.

@@ -1,4 +1,4 @@
-﻿import { humiditySensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { humiditySensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -23,7 +23,6 @@ export const humiditySensorDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.topicHumidity, (p) => {
         const h = ctx.parseFloatPayload(p, ['humidity', 'value'], cfg.payloadHumidityJsonPath);
         if (h !== null && !isNaN(h)) {
-          ctx.log.info(`[${cfg.name}] ? ${h}%`);
           ctx.setAttr(ep, CID.RelativeHumidityMeasurement, 'measuredValue', Math.round(h * 100));
         }
       });

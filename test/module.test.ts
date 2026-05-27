@@ -8,7 +8,9 @@ import { VendorId } from 'matterbridge/matter';
 // Mock mqtt BEFORE importing the module (ESM requirement)
 const mockMqttClient = {
   connected: false,
-  once: jest.fn((event: string, cb: (...args: any[]) => void) => { if (event === 'connect') cb(); }),
+  once: jest.fn((event: string, cb: (...args: any[]) => void) => {
+    if (event === 'connect') cb();
+  }),
   on: jest.fn(),
   subscribe: jest.fn(),
   publish: jest.fn(),
@@ -24,18 +26,22 @@ const { default: initializePlugin, MqttPlatform } = await import('../src/module.
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 const mockLog = {
-  fatal: jest.fn(), error: jest.fn(), warn: jest.fn(),
-  notice: jest.fn(), info: jest.fn(), debug: jest.fn(),
+  fatal: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  notice: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn(),
 } as unknown as AnsiLogger;
 
 const mockMatterbridge: PlatformMatterbridge = {
   systemInformation: { ipv4Address: '127.0.0.1', ipv6Address: '::1', osRelease: 'x', nodeVersion: '22.0.0' },
-  rootDirectory:               path.join('.cache', 'jest', 'MqttPlugin'),
-  homeDirectory:               path.join('.cache', 'jest', 'MqttPlugin'),
-  matterbridgeDirectory:       path.join('.cache', 'jest', 'MqttPlugin', '.matterbridge'),
+  rootDirectory: path.join('.cache', 'jest', 'MqttPlugin'),
+  homeDirectory: path.join('.cache', 'jest', 'MqttPlugin'),
+  matterbridgeDirectory: path.join('.cache', 'jest', 'MqttPlugin', '.matterbridge'),
   matterbridgePluginDirectory: path.join('.cache', 'jest', 'MqttPlugin', 'Matterbridge'),
-  matterbridgeCertDirectory:   path.join('.cache', 'jest', 'MqttPlugin', '.mattercert'),
-  globalModulesDirectory:      path.join('.cache', 'jest', 'MqttPlugin', 'node_modules'),
+  matterbridgeCertDirectory: path.join('.cache', 'jest', 'MqttPlugin', '.mattercert'),
+  globalModulesDirectory: path.join('.cache', 'jest', 'MqttPlugin', 'node_modules'),
   matterbridgeVersion: '3.5.0',
   matterbridgeLatestVersion: '3.5.0',
   matterbridgeDevVersion: '3.5.0',

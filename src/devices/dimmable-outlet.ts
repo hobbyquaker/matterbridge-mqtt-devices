@@ -1,4 +1,4 @@
-﻿import { dimmableOutlet, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { dimmableOutlet, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { AnyHandler, DeviceContext, DeviceDescriptor, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -39,13 +39,11 @@ export const dimmableOutletDescriptor: DeviceDescriptor = {
     ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
       const lv254 = data.request.level;
       const mqttBrightness = ctx.matterLevelToMqttBrightness(lv254, briMin, briMax);
-      ctx.log.info(`[${cfg.name}] ? level ${lv254} (mqtt ${mqttBrightness}, range ${briMin}-${briMax})`);
       if (cfg.topicMoveToLevel) ctx.publish(cfg.topicMoveToLevel, String(mqttBrightness), cfg.retain);
     }) as AnyHandler);
     ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
       const lv254 = data.request.level;
       const mqttBrightness = ctx.matterLevelToMqttBrightness(lv254, briMin, briMax);
-      ctx.log.info(`[${cfg.name}] ? level ${lv254} (mqtt ${mqttBrightness}, range ${briMin}-${briMax})`);
       if (cfg.topicMoveToLevelWithOnOff) ctx.publish(cfg.topicMoveToLevelWithOnOff, String(mqttBrightness), cfg.retain);
       if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, lv254 > 0 ? ON : OFF, cfg.retain);
     }) as AnyHandler);

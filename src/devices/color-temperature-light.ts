@@ -1,4 +1,4 @@
-﻿import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { AnyHandler, ColorTempRequest, DeviceContext, DeviceDescriptor, HueSatRequest, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -51,13 +51,11 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
     ctx.onCmd(ep, 'moveToHueAndSaturation', ((data: HueSatRequest) => {
       const hue360 = Math.round((data.request.hue / 254) * 360);
       const sat100 = Math.round((data.request.saturation / 254) * 100);
-      ctx.log.info(`[${cfg.name}] ? H${hue360}� S${sat100}%`);
       if (cfg.topicSetColor) ctx.publish(cfg.topicSetColor, JSON.stringify({ hue: hue360, saturation: sat100 }), cfg.retain);
     }) as AnyHandler);
 
     ctx.onCmd(ep, 'moveToColorTemperature', ((data: ColorTempRequest) => {
       const mireds = data.request.colorTemperatureMireds;
-      ctx.log.info(`[${cfg.name}] ? ${mireds} mireds`);
       if (cfg.topicSetColor) ctx.publish(cfg.topicSetColor, JSON.stringify({ colorTemp: mireds }), cfg.retain);
     }) as AnyHandler);
 

@@ -1,4 +1,4 @@
-﻿import { MatterbridgeEndpoint, occupancySensor, powerSource } from 'matterbridge';
+import { MatterbridgeEndpoint, occupancySensor, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -25,7 +25,6 @@ export const occupancySensorDescriptor: DeviceDescriptor = {
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {
         const occupied = ctx.parseOnOff(p, ON, OFF, cfg.payloadOnOffJsonPath) ?? false;
-        ctx.log.info(`[${cfg.name}] ? ${occupied ? 'OCCUPIED' : 'CLEAR'}`);
         ctx.setAttr(ep, CID.OccupancySensing, 'occupancy', { occupied });
       });
     }

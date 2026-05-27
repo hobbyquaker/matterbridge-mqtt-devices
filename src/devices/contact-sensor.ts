@@ -1,4 +1,4 @@
-﻿import { contactSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { contactSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -32,7 +32,6 @@ export const contactSensorDescriptor: DeviceDescriptor = {
           const l = state.toLowerCase();
           contact = l === '1' || l === 'true' || l === 'closed';
         }
-        ctx.log.info(`[${cfg.name}] ? ${contact ? 'CLOSED' : 'OPEN'}`);
         ctx.setAttr(ep, CID.BooleanState, 'stateValue', contact);
       });
     }

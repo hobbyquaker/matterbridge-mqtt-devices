@@ -1,4 +1,4 @@
-﻿import { MatterbridgeEndpoint, powerSource, waterLeakDetector } from 'matterbridge';
+import { MatterbridgeEndpoint, powerSource, waterLeakDetector } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -26,7 +26,6 @@ export const waterLeakDetectorDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.topicOnOff, (p) => {
         const v = ctx.parseOnOff(p, LEAK, DRY, cfg.payloadOnOffJsonPath);
         if (v !== null) {
-          ctx.log.info(`[${cfg.name}] ? ${v ? 'LEAK' : 'DRY'}`);
           ctx.setAttr(ep, CID.BooleanState, 'stateValue', v);
         }
       });

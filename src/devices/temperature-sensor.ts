@@ -1,4 +1,4 @@
-﻿import { MatterbridgeEndpoint, powerSource, temperatureSensor } from 'matterbridge';
+import { MatterbridgeEndpoint, powerSource, temperatureSensor } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -23,7 +23,6 @@ export const temperatureSensorDescriptor: DeviceDescriptor = {
       ctx.subscribe(cfg.topicTemperature, (p) => {
         const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'value'], cfg.payloadTemperatureJsonPath);
         if (c !== null && !isNaN(c)) {
-          ctx.log.info(`[${cfg.name}] ? ${c}�C`);
           ctx.setAttr(ep, CID.TemperatureMeasurement, 'measuredValue', Math.round(c * 100));
         }
       });
