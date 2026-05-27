@@ -6,13 +6,13 @@ import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 export const coverDescriptor: DeviceDescriptor = {
   type: 'cover',
   editableKeys: {
-    publish: ['topicSetOnOff', 'topicSetPosition'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicPosition', 'payloadPositionJsonPath'],
+    publish: ['topicSetCoverState', 'topicSetPosition'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicCoverState', 'payloadCoverStateJsonPath', 'topicPosition', 'payloadPositionJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOpen', 'payloadClosed', 'payloadStop', 'retain', 'positionMin', 'positionMax'],
   },
   applyDefaults(cfg, baseTopic) {
     return {
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
+      topicSetCoverState: cfg.topicSetCoverState ?? `${baseTopic}/set`,
       topicPosition: cfg.topicPosition ?? `${baseTopic}/position`,
       topicSetPosition: cfg.topicSetPosition ?? `${baseTopic}/position/set`,
     };
@@ -31,21 +31,21 @@ export const coverDescriptor: DeviceDescriptor = {
 
     ctx.onCmd(ep, 'upOrOpen', () => {
       ctx.log.info(`[${cfg.name}] ? OPEN`);
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OPEN, cfg.retain);
+      if (cfg.topicSetCoverState) ctx.publish(cfg.topicSetCoverState, OPEN, cfg.retain);
       if (cfg.topicSetPosition) ctx.publish(cfg.topicSetPosition, String(posMin), cfg.retain);
       ctx.setAttr(ep, CID.WindowCovering, 'targetPositionLiftPercent100ths', 0);
     });
 
     ctx.onCmd(ep, 'downOrClose', () => {
       ctx.log.info(`[${cfg.name}] ? CLOSE`);
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, CLOSE, cfg.retain);
+      if (cfg.topicSetCoverState) ctx.publish(cfg.topicSetCoverState, CLOSE, cfg.retain);
       if (cfg.topicSetPosition) ctx.publish(cfg.topicSetPosition, String(posMax), cfg.retain);
       ctx.setAttr(ep, CID.WindowCovering, 'targetPositionLiftPercent100ths', 10000);
     });
 
     ctx.onCmd(ep, 'stopMotion', () => {
       ctx.log.info(`[${cfg.name}] ? STOP`);
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, STOP, cfg.retain);
+      if (cfg.topicSetCoverState) ctx.publish(cfg.topicSetCoverState, STOP, cfg.retain);
     });
 
     ctx.onCmd(ep, 'goToLiftPercentage', (data: unknown) => {
@@ -58,9 +58,9 @@ export const coverDescriptor: DeviceDescriptor = {
       ctx.setAttr(ep, CID.WindowCovering, 'targetPositionLiftPercent100ths', matter100ths);
     });
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const state = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath));
+    if (cfg.topicCoverState) {
+      ctx.subscribe(cfg.topicCoverState, (p) => {
+        const state = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.payloadCoverStateJsonPath));
         const u = state.toUpperCase();
         if (u === OPEN.toUpperCase()) {
           ctx.setAttr(ep, CID.WindowCovering, 'currentPositionLiftPercent100ths', 0);

@@ -9,16 +9,17 @@ const LOCK_STATE = { NotFullyLocked: 0, Locked: 1, Unlocked: 2 } as const;
 export const doorLockDescriptor: DeviceDescriptor = {
   type: 'door-lock',
   editableKeys: {
-    publish: ['topicSetOnOff'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
-    settings: [...COMMON_SETTINGS_KEYS, 'payloadLocked', 'payloadUnlocked', 'retain'],
+    publish: ['topicSetLockState'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLockState', 'payloadLockStateJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadLocked', 'payloadUnlocked', 'payloadNotFullyLocked', 'retain'],
   },
   applyDefaults(cfg, baseTopic) {
-    return { topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set` };
+    return { topicSetLockState: cfg.topicSetLockState ?? `${baseTopic}/set` };
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const LOCKED = cfg.payloadLocked ?? 'LOCK';
     const UNLOCKED = cfg.payloadUnlocked ?? 'UNLOCK';
+    const NOT_FULLY_LOCKED = cfg.payloadNotFullyLocked ?? 'NOT_FULLY_LOCKED';
 
     const ep = new MatterbridgeEndpoint([doorLockDevice, powerSource]);
     ctx.initEp(ep, cfg, 0x800e);
@@ -27,25 +28,27 @@ export const doorLockDescriptor: DeviceDescriptor = {
 
     ctx.onCmd(ep, 'lockDoor', () => {
       ctx.log.info(`[${cfg.name}] ? LOCK`);
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, LOCKED, cfg.retain);
+      if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, LOCKED, cfg.retain);
     });
     ctx.onCmd(ep, 'unlockDoor', () => {
       ctx.log.info(`[${cfg.name}] ? UNLOCK`);
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, UNLOCKED, cfg.retain);
+      if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, UNLOCKED, cfg.retain);
     });
     ctx.onCmd(ep, 'unlockWithTimeout', () => {
       ctx.log.info(`[${cfg.name}] ? UNLOCK (with timeout)`);
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, UNLOCKED, cfg.retain);
+      if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, UNLOCKED, cfg.retain);
     });
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const payload = String(ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath) ?? p).trim();
+    if (cfg.topicLockState) {
+      ctx.subscribe(cfg.topicLockState, (p) => {
+        const payload = String(ctx.extractPayloadValue(p, cfg.payloadLockStateJsonPath) ?? p).trim();
         let lockState: number;
         if (payload === LOCKED) {
           lockState = LOCK_STATE.Locked;
         } else if (payload === UNLOCKED) {
           lockState = LOCK_STATE.Unlocked;
+        } else if (payload === NOT_FULLY_LOCKED) {
+          lockState = LOCK_STATE.NotFullyLocked;
         } else {
           lockState = LOCK_STATE.NotFullyLocked;
         }

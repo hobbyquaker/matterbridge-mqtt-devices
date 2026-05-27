@@ -7,7 +7,7 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
   type: 'generic-switch',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAction', 'payloadActionJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadPress', 'payloadDouble', 'payloadLong'],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -23,9 +23,9 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultSwitchClusterServer();
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const payload = ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath) ?? p;
+    if (cfg.topicAction) {
+      ctx.subscribe(cfg.topicAction, (p) => {
+        const payload = ctx.extractPayloadValue(p, cfg.payloadActionJsonPath) ?? p;
         if (payload === PRESS) {
           ctx.log.info(`[${cfg.name}] ? Single press`);
           void ep.triggerSwitchEvent('Single', ctx.log);

@@ -112,20 +112,39 @@ export interface MqttDeviceConfig {
   speedMax?: number;
 
   // thermostat
+  topicLocalTemp?: string;
+  payloadLocalTempJsonPath?: string;
   topicTargetTemp?: string;
   payloadTargetTempJsonPath?: string;
   topicSetTargetTemp?: string;
 
+  // contact_sensor
+  topicContactState?: string;
+  payloadContactStateJsonPath?: string;
+
+  // cover
+  topicCoverState?: string;
+  payloadCoverStateJsonPath?: string;
+  topicSetCoverState?: string;
+
   // generic_switch
+  topicAction?: string;
+  payloadActionJsonPath?: string;
   payloadPress?: string;
   payloadDouble?: string;
   payloadLong?: string;
 
   // door_lock
+  topicLockState?: string;
+  payloadLockStateJsonPath?: string;
+  topicSetLockState?: string;
   payloadLocked?: string;
   payloadUnlocked?: string;
+  payloadNotFullyLocked?: string;
 
   // smoke_alarm
+  topicSmokeAlarm?: string;
+  payloadSmokeAlarmJsonPath?: string;
   payloadAlarmNormal?: string;
   payloadAlarmWarning?: string;
   payloadAlarmCritical?: string;
@@ -183,8 +202,23 @@ export type EditableDeviceKey =
   | 'payloadPress'
   | 'payloadDouble'
   | 'payloadLong'
+  | 'topicLocalTemp'
+  | 'payloadLocalTempJsonPath'
+  | 'topicContactState'
+  | 'payloadContactStateJsonPath'
+  | 'topicCoverState'
+  | 'payloadCoverStateJsonPath'
+  | 'topicSetCoverState'
+  | 'topicAction'
+  | 'payloadActionJsonPath'
+  | 'topicLockState'
+  | 'payloadLockStateJsonPath'
+  | 'topicSetLockState'
   | 'payloadLocked'
   | 'payloadUnlocked'
+  | 'payloadNotFullyLocked'
+  | 'topicSmokeAlarm'
+  | 'payloadSmokeAlarmJsonPath'
   | 'payloadAlarmNormal'
   | 'payloadAlarmWarning'
   | 'payloadAlarmCritical'
@@ -265,8 +299,23 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'payloadPress',
   'payloadDouble',
   'payloadLong',
+  'topicLocalTemp',
+  'payloadLocalTempJsonPath',
+  'topicContactState',
+  'payloadContactStateJsonPath',
+  'topicCoverState',
+  'payloadCoverStateJsonPath',
+  'topicSetCoverState',
+  'topicAction',
+  'payloadActionJsonPath',
+  'topicLockState',
+  'payloadLockStateJsonPath',
+  'topicSetLockState',
   'payloadLocked',
   'payloadUnlocked',
+  'payloadNotFullyLocked',
+  'topicSmokeAlarm',
+  'payloadSmokeAlarmJsonPath',
   'payloadAlarmNormal',
   'payloadAlarmWarning',
   'payloadAlarmCritical',

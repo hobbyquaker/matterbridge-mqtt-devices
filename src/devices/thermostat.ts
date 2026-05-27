@@ -29,12 +29,11 @@ export const thermostatDescriptor: DeviceDescriptor = {
   type: 'thermostat',
   editableKeys: {
     publish: ['topicSetTargetTemp'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLocalTemp', 'payloadLocalTempJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'retain'],
   },
   applyDefaults(cfg, baseTopic) {
     return {
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
       topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/target`,
       topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/target/set`,
     };
@@ -64,9 +63,9 @@ export const thermostatDescriptor: DeviceDescriptor = {
       ctx.log,
     );
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'local_temperature'], cfg.payloadOnOffJsonPath);
+    if (cfg.topicLocalTemp) {
+      ctx.subscribe(cfg.topicLocalTemp, (p) => {
+        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'local_temperature'], cfg.payloadLocalTempJsonPath);
         if (c !== null) {
           ctx.log.info(`[${cfg.name}] ? localTemperature ${c}�C`);
           ctx.setAttr(ep, CID.Thermostat, 'localTemperature', Math.round(c * 100));

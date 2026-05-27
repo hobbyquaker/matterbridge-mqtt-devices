@@ -7,7 +7,7 @@ export const contactSensorDescriptor: DeviceDescriptor = {
   type: 'contact-sensor',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicContactState', 'payloadContactStateJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOpen', 'payloadClosed'],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -22,9 +22,9 @@ export const contactSensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultBooleanStateClusterServer(true);
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const state = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath));
+    if (cfg.topicContactState) {
+      ctx.subscribe(cfg.topicContactState, (p) => {
+        const state = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.payloadContactStateJsonPath));
         let contact: boolean;
         if (state === OPEN) contact = false;
         else if (state === CLOSED) contact = true;

@@ -25,7 +25,7 @@ export const smokeCoAlarmDescriptor: DeviceDescriptor = {
   type: 'smoke-co-alarm',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCo', 'payloadCoJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicSmokeAlarm', 'payloadSmokeAlarmJsonPath', 'topicCo', 'payloadCoJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical'],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -41,9 +41,9 @@ export const smokeCoAlarmDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultSmokeCOAlarmClusterServer(AlarmState.Normal, AlarmState.Normal);
 
-    if (cfg.topicOnOff) {
-      ctx.subscribe(cfg.topicOnOff, (p) => {
-        const payload = String(ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath) ?? p).trim();
+    if (cfg.topicSmokeAlarm) {
+      ctx.subscribe(cfg.topicSmokeAlarm, (p) => {
+        const payload = String(ctx.extractPayloadValue(p, cfg.payloadSmokeAlarmJsonPath) ?? p).trim();
         const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
         ctx.log.info(`[${cfg.name}] ? smokeState ${state} (payload "${payload}")`);
         ctx.setAttr(ep, CID.SmokeCoAlarm, 'smokeState', state);
