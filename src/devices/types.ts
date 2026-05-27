@@ -64,7 +64,7 @@ export interface MqttDeviceConfig {
 
   // availability / online state
   topicAvailability?: string;
-  payloadpayloadAvailabilityJsonPath?: string;
+  payloadAvailabilityJsonPath?: string;
   payloadOnline?: string;
   payloadOffline?: string;
 
@@ -73,7 +73,7 @@ export interface MqttDeviceConfig {
 
   // battery (value-based or boolean)
   topicBattery?: string;
-  payloadpayloadBatteryJsonPath?: string;
+  payloadBatteryJsonPath?: string;
   batteryValueBased?: boolean;
   batteryMin?: number;
   batteryMax?: number;
@@ -143,12 +143,12 @@ export type EditableDeviceKey =
   | 'payloadOff'
   | 'retain'
   | 'topicAvailability'
-  | 'payloadpayloadAvailabilityJsonPath'
+  | 'payloadAvailabilityJsonPath'
   | 'payloadOnline'
   | 'payloadOffline'
   | 'powerSource'
   | 'topicBattery'
-  | 'payloadpayloadBatteryJsonPath'
+  | 'payloadBatteryJsonPath'
   | 'batteryValueBased'
   | 'batteryMin'
   | 'batteryMax'
@@ -191,15 +191,24 @@ export type EditableDeviceKey =
   | 'topicCo'
   | 'payloadCoJsonPath';
 
-/** Keys common to all device types (availability + battery + power source). */
-export const COMMON_KEYS: readonly EditableDeviceKey[] = [
-  'topicAvailability',
-  'payloadpayloadAvailabilityJsonPath',
+/** Editable keys grouped by role: publish topics, subscribe topics, and other settings. */
+export interface EditableKeyGroups {
+  /** Topics the plugin publishes to (command topics). */
+  readonly publish: readonly EditableDeviceKey[];
+  /** Topics the plugin subscribes to, plus their JSON-path options. */
+  readonly subscribe: readonly EditableDeviceKey[];
+  /** Payload values, ranges, and other non-topic settings. */
+  readonly settings: readonly EditableDeviceKey[];
+}
+
+/** Subscribe-side keys common to all device types (availability + battery). */
+export const COMMON_SUBSCRIBE_KEYS: readonly EditableDeviceKey[] = ['topicAvailability', 'payloadAvailabilityJsonPath', 'topicBattery', 'payloadBatteryJsonPath'];
+
+/** Non-topic settings common to all device types (availability payloads + battery config + power source). */
+export const COMMON_SETTINGS_KEYS: readonly EditableDeviceKey[] = [
   'payloadOnline',
   'payloadOffline',
   'powerSource',
-  'topicBattery',
-  'payloadpayloadBatteryJsonPath',
   'batteryValueBased',
   'batteryMin',
   'batteryMax',
@@ -216,12 +225,12 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'payloadOff',
   'retain',
   'topicAvailability',
-  'payloadpayloadAvailabilityJsonPath',
+  'payloadAvailabilityJsonPath',
   'payloadOnline',
   'payloadOffline',
   'powerSource',
   'topicBattery',
-  'payloadpayloadBatteryJsonPath',
+  'payloadBatteryJsonPath',
   'batteryValueBased',
   'batteryMin',
   'batteryMax',
@@ -312,8 +321,8 @@ export interface DeviceContext {
 
 export interface DeviceDescriptor {
   readonly type: DeviceKind;
-  /** Full list of editable keys shown in the device editor for this type. */
-  readonly editableKeys: readonly EditableDeviceKey[];
+  /** Editable keys grouped by role shown in the device editor for this type. */
+  readonly editableKeys: EditableKeyGroups;
   /** Returns topic/field defaults to merge into the config for this type. */
   applyDefaults(cfg: MqttDeviceConfig, baseTopic: string): Partial<MqttDeviceConfig>;
   /** Creates the Matter endpoint and wires up all MQTT handlers. */

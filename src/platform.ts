@@ -16,7 +16,7 @@ import { AnsiLogger } from 'matterbridge/logger';
 // ── MQTT ──────────────────────────────────────────────────────────────────────
 import mqtt, { IClientOptions, MqttClient } from 'mqtt';
 
-import type { AnyHandler, DeviceContext, EditableDeviceKey, MqttDeviceConfig } from './devices/index.js';
+import type { AnyHandler, DeviceContext, EditableDeviceKey, EditableKeyGroups, MqttDeviceConfig } from './devices/index.js';
 // ── Device registry ───────────────────────────────────────────────────────────
 import { ALL_EDITABLE_KEYS, findDescriptor, NUMBER_KEYS } from './devices/index.js';
 
@@ -314,8 +314,10 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     return ALL_EDITABLE_KEYS;
   }
 
-  private getEditableKeysForType(deviceType: string | undefined): readonly EditableDeviceKey[] {
-    return findDescriptor(deviceType)?.editableKeys ?? ALL_EDITABLE_KEYS;
+  private getEditableKeyGroups(deviceType: string | undefined): EditableKeyGroups {
+    const d = findDescriptor(deviceType);
+    if (d) return d.editableKeys;
+    return { publish: [], subscribe: [], settings: ALL_EDITABLE_KEYS };
   }
 
   private isNumberKey(key: EditableDeviceKey): boolean {
@@ -386,9 +388,10 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     const cfg = this.findConfiguredDeviceById(deviceId);
     if (!cfg) return null;
 
-    const keys = this.getEditableKeysForType(cfg.type);
+    const groups = this.getEditableKeyGroups(cfg.type);
+    const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
     const values: Record<string, unknown> = {};
-    for (const key of keys) values[key] = (cfg as unknown as Record<string, unknown>)[key] ?? '';
+    for (const key of allKeys) values[key] = (cfg as unknown as Record<string, unknown>)[key] ?? '';
     values['retain'] = cfg.retain === true;
 
     const title = `${cfg.name} (${cfg.type ?? 'on-off-outlet'})`;
@@ -405,6 +408,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     .wrap { max-width: 900px; margin: 24px auto; background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
     h1 { margin: 0 0 6px 0; font-size: 24px; }
     p { margin: 0 0 16px 0; color: #4a5a78; }
+    .section-label { grid-column: span 2; margin: 12px 0 0; padding: 6px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8896b0; border-bottom: 1px solid #e8ecf4; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field.full { grid-column: span 2; }
@@ -413,7 +417,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
     button { border: 0; border-radius: 8px; background: #1f6feb; color: #fff; padding: 10px 14px; font-weight: 600; cursor: pointer; }
     .status { font-size: 13px; color: #4a5a78; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .field.full { grid-column: span 1; } }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .field.full { grid-column: span 1; } .section-label { grid-column: span 1; } }
   </style>
 </head>
 <body>
@@ -428,11 +432,12 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   </div>
   <script>
     const deviceId = ${JSON.stringify(deviceId)};
-    const keys = ${JSON.stringify(keys)};
+    const groups = ${JSON.stringify(groups)};
     const initial = ${initialJson};
     const fields = document.getElementById('fields');
     const status = document.getElementById('status');
     const saveBtn = document.getElementById('saveBtn');
+    const GROUP_LABELS = { publish: 'Publish Topics', subscribe: 'Subscribe Topics & Paths', settings: 'Settings' };
 
     function makeField(key, value) {
       const wrap = document.createElement('div');
@@ -441,7 +446,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       label.textContent = key;
       const input = document.createElement('input');
       input.name = key;
-      if (key === 'retain') {
+      if (key === 'retain' || key === 'batteryValueBased') {
         input.type = 'checkbox';
         input.checked = !!value;
       } else {
@@ -453,20 +458,29 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       return wrap;
     }
 
-    keys.forEach((key) => fields.appendChild(makeField(key, initial[key])));
+    for (const [groupName, groupKeys] of Object.entries(groups)) {
+      if (!groupKeys.length) continue;
+      const heading = document.createElement('div');
+      heading.className = 'section-label';
+      heading.textContent = GROUP_LABELS[groupName] ?? groupName;
+      fields.appendChild(heading);
+      groupKeys.forEach((key) => fields.appendChild(makeField(key, initial[key])));
+    }
+
+    const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
 
     saveBtn.addEventListener('click', async () => {
       status.textContent = 'Saving...';
       const payload = { deviceId };
-      keys.forEach((key) => {
+      allKeys.forEach((key) => {
         const input = document.querySelector('[name="' + key + '"]');
-        payload[key] = key === 'retain' ? input.checked : input.value;
+        payload[key] = (key === 'retain' || key === 'batteryValueBased') ? input.checked : input.value;
       });
 
       try {
         const params = new URLSearchParams();
         params.set('deviceId', deviceId);
-        keys.forEach((key) => params.set(key, String(payload[key] ?? '')));
+        allKeys.forEach((key) => params.set(key, String(payload[key] ?? '')));
 
         const resp = await fetch('/api/matterbridge-mqtt-config?' + params.toString(), { method: 'GET' });
         const data = await resp.json();
@@ -528,7 +542,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     if (cfg.topicAvailability) {
       const onlinePayload = cfg.payloadOnline ?? 'online';
       this.subscribe(cfg.topicAvailability, (p) => {
-        const state = this.toPayloadString(this.extractPayloadValue(p, cfg.payloadpayloadAvailabilityJsonPath));
+        const state = this.toPayloadString(this.extractPayloadValue(p, cfg.payloadAvailabilityJsonPath));
         const isOnline = state === onlinePayload;
         this.log.info(`[${cfg.name}] availability: ${isOnline ? 'online' : 'offline'}`);
         // Set BridgedDeviceBasicInformation.reachable attribute
@@ -544,7 +558,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         const min = cfg.batteryMin ?? 0;
         const max = cfg.batteryMax ?? 100;
         this.subscribe(cfg.topicBattery, (p) => {
-          const raw = this.parseFloatPayload(p, ['battery', 'level', 'percent', 'value'], cfg.payloadpayloadBatteryJsonPath);
+          const raw = this.parseFloatPayload(p, ['battery', 'level', 'percent', 'value'], cfg.payloadBatteryJsonPath);
           if (raw !== null && !isNaN(raw)) {
             // Clamp and convert to 0-100 percentage
             const clamped = Math.max(min, Math.min(max, raw));
@@ -559,7 +573,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         const fullPayload = cfg.payloadBatteryFull ?? 'full';
         const emptyPayload = cfg.payloadBatteryEmpty ?? 'empty';
         this.subscribe(cfg.topicBattery, (p) => {
-          const state = this.toPayloadString(this.extractPayloadValue(p, cfg.payloadpayloadBatteryJsonPath));
+          const state = this.toPayloadString(this.extractPayloadValue(p, cfg.payloadBatteryJsonPath));
           let pct = 50;
           if (state === fullPayload) pct = 100;
           else if (state === emptyPayload) pct = 0;

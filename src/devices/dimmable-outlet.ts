@@ -1,25 +1,15 @@
 ﻿import { dimmableOutlet, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { AnyHandler, DeviceContext, DeviceDescriptor, LevelRequest, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const dimmableOutletDescriptor: DeviceDescriptor = {
   type: 'dimmable-outlet',
-  editableKeys: [
-    ...COMMON_KEYS,
-    'topicOnOff',
-    'payloadOnOffJsonPath',
-    'topicSetOnOff',
-    'payloadOn',
-    'payloadOff',
-    'retain',
-    'topicCurrentLevel',
-    'payloadCurrentLevelJsonPath',
-    'topicMoveToLevel',
-    'topicMoveToLevelWithOnOff',
-    'brightnessMin',
-    'brightnessMax',
-  ],
+  editableKeys: {
+    publish: ['topicSetOnOff', 'topicMoveToLevel', 'topicMoveToLevelWithOnOff'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCurrentLevel', 'payloadCurrentLevelJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain', 'brightnessMin', 'brightnessMax'],
+  },
   applyDefaults(cfg, baseTopic) {
     return {
       topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,

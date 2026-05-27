@@ -1,14 +1,18 @@
 ﻿import { doorLockDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 /** DoorLock.LockState enum values (Matter spec) */
 const LOCK_STATE = { NotFullyLocked: 0, Locked: 1, Unlocked: 2 } as const;
 
 export const doorLockDescriptor: DeviceDescriptor = {
   type: 'door-lock',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicSetOnOff', 'payloadLocked', 'payloadUnlocked', 'retain'],
+  editableKeys: {
+    publish: ['topicSetOnOff'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadLocked', 'payloadUnlocked', 'retain'],
+  },
   applyDefaults(cfg, baseTopic) {
     return { topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set` };
   },

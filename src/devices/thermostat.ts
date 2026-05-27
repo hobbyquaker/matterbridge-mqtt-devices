@@ -2,7 +2,7 @@
 import { MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 // Thermostat device type (spec code 0x0301).
 // Some Matterbridge versions don't export it by name, so we search for it.
@@ -27,7 +27,11 @@ const thermostatDeviceType: unknown = mb['thermostat'] ??
 
 export const thermostatDescriptor: DeviceDescriptor = {
   type: 'thermostat',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath', 'topicSetTargetTemp', 'retain'],
+  editableKeys: {
+    publish: ['topicSetTargetTemp'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'retain'],
+  },
   applyDefaults(cfg, baseTopic) {
     return {
       topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,

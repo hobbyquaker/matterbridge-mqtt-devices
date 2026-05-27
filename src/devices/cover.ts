@@ -1,25 +1,15 @@
 ﻿import { coverDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const coverDescriptor: DeviceDescriptor = {
   type: 'cover',
-  editableKeys: [
-    ...COMMON_KEYS,
-    'topicOnOff',
-    'payloadOnOffJsonPath',
-    'topicSetOnOff',
-    'payloadOpen',
-    'payloadClosed',
-    'payloadStop',
-    'retain',
-    'topicPosition',
-    'payloadPositionJsonPath',
-    'topicSetPosition',
-    'positionMin',
-    'positionMax',
-  ],
+  editableKeys: {
+    publish: ['topicSetOnOff', 'topicSetPosition'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicPosition', 'payloadPositionJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadOpen', 'payloadClosed', 'payloadStop', 'retain', 'positionMin', 'positionMax'],
+  },
   applyDefaults(cfg, baseTopic) {
     return {
       topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,

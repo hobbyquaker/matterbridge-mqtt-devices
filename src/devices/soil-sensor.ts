@@ -1,7 +1,7 @@
 ﻿import { MatterbridgeEndpoint, powerSource, soilSensor } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 /**
  * Soil sensor device type.
@@ -14,7 +14,11 @@ import { CID, COMMON_KEYS } from './types.js';
  */
 export const soilSensorDescriptor: DeviceDescriptor = {
   type: 'soil-sensor',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+  editableKeys: {
+    publish: [],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS],
+  },
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },

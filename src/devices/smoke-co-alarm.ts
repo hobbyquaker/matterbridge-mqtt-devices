@@ -1,7 +1,7 @@
 ﻿import { MatterbridgeEndpoint, powerSource, smokeCoAlarm } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 /** SmokeCoAlarm.AlarmState (Matter spec): Normal=0, Warning=1, Critical=2. */
 const AlarmState = { Normal: 0, Warning: 1, Critical: 2 } as const;
@@ -23,7 +23,11 @@ function parseAlarmState(payload: string, normal: string, warning: string, criti
 
 export const smokeCoAlarmDescriptor: DeviceDescriptor = {
   type: 'smoke-co-alarm',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical', 'topicCo', 'payloadCoJsonPath'],
+  editableKeys: {
+    publish: [],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCo', 'payloadCoJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical'],
+  },
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },

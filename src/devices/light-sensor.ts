@@ -1,7 +1,7 @@
 ﻿import { lightSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 /**
  * Convert lux to Matter IlluminanceMeasurement measuredValue.
@@ -17,7 +17,11 @@ function luxToMatter(lux: number): number {
 
 export const lightSensorDescriptor: DeviceDescriptor = {
   type: 'light-sensor',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+  editableKeys: {
+    publish: [],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS],
+  },
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },

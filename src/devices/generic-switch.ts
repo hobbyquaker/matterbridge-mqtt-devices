@@ -1,11 +1,15 @@
 ﻿import { genericSwitch, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { COMMON_KEYS } from './types.js';
+import { COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const genericSwitchDescriptor: DeviceDescriptor = {
   type: 'generic-switch',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadPress', 'payloadDouble', 'payloadLong'],
+  editableKeys: {
+    publish: [],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadPress', 'payloadDouble', 'payloadLong'],
+  },
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },

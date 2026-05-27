@@ -1,11 +1,15 @@
 ﻿import { MatterbridgeEndpoint, powerSource, waterLeakDetector } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const waterLeakDetectorDescriptor: DeviceDescriptor = {
   type: 'water-leak-detector',
-  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadOn', 'payloadOff'],
+  editableKeys: {
+    publish: [],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff'],
+  },
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },

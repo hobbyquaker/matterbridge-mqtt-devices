@@ -1,28 +1,15 @@
 ﻿import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { AnyHandler, ColorTempRequest, DeviceContext, DeviceDescriptor, HueSatRequest, LevelRequest, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const colorTemperatureLightDescriptor: DeviceDescriptor = {
   type: 'color-temperature-light',
-  editableKeys: [
-    ...COMMON_KEYS,
-    'topicOnOff',
-    'payloadOnOffJsonPath',
-    'topicSetOnOff',
-    'payloadOn',
-    'payloadOff',
-    'retain',
-    'topicCurrentLevel',
-    'payloadCurrentLevelJsonPath',
-    'topicMoveToLevel',
-    'topicMoveToLevelWithOnOff',
-    'brightnessMin',
-    'brightnessMax',
-    'topicColor',
-    'payloadColorJsonPath',
-    'topicSetColor',
-  ],
+  editableKeys: {
+    publish: ['topicSetOnOff', 'topicMoveToLevel', 'topicMoveToLevelWithOnOff', 'topicSetColor'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCurrentLevel', 'payloadCurrentLevelJsonPath', 'topicColor', 'payloadColorJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain', 'brightnessMin', 'brightnessMax'],
+  },
   applyDefaults(cfg, baseTopic) {
     return {
       topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,

@@ -59,6 +59,5 @@ export function findDescriptor(type: string | undefined): DeviceDescriptor | und
   return DEVICE_REGISTRY.find((d) => d.type === t);
 }
 
-// Re-export types so platform.ts has a single import source.
-export type { AnyHandler, DeviceContext, DeviceKind, EditableDeviceKey, MqttDeviceConfig } from './types.js';
-export { ALL_EDITABLE_KEYS, COMMON_KEYS, NUMBER_KEYS } from './types.js';
+export type { AnyHandler, DeviceContext, DeviceKind, EditableDeviceKey, EditableKeyGroups, MqttDeviceConfig } from './types.js';
+export { ALL_EDITABLE_KEYS, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS, NUMBER_KEYS } from './types.js';

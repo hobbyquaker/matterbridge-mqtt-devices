@@ -1,11 +1,15 @@
 ﻿import { fanDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
-import { CID, COMMON_KEYS } from './types.js';
+import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const fanDescriptor: DeviceDescriptor = {
   type: 'fan',
-  editableKeys: [...COMMON_KEYS, 'topicSpeed', 'payloadSpeedJsonPath', 'topicSetSpeed', 'topicSetSpeedStep', 'speedMin', 'speedMax', 'retain'],
+  editableKeys: {
+    publish: ['topicSetSpeed', 'topicSetSpeedStep'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicSpeed', 'payloadSpeedJsonPath'],
+    settings: [...COMMON_SETTINGS_KEYS, 'speedMin', 'speedMax', 'retain'],
+  },
   applyDefaults(cfg, baseTopic) {
     return {
       topicSpeed: cfg.topicSpeed ?? `${baseTopic}/speed`,
