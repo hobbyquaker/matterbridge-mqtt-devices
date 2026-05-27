@@ -13,17 +13,19 @@ export const dimmableOutletDescriptor: DeviceDescriptor = {
     'payloadOn',
     'payloadOff',
     'retain',
-    'topicBrightness',
-    'payloadBrightnessJsonPath',
-    'topicSetBrightness',
+    'topicCurrentLevel',
+    'payloadCurrentLevelJsonPath',
+    'topicMoveToLevel',
+    'topicMoveToLevelWithOnOff',
     'brightnessMin',
     'brightnessMax',
   ],
   applyDefaults(cfg, baseTopic) {
     return {
       topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicBrightness: cfg.topicBrightness ?? `${baseTopic}/brightness`,
-      topicSetBrightness: cfg.topicSetBrightness ?? `${baseTopic}/brightness/set`,
+      topicCurrentLevel: cfg.topicCurrentLevel ?? `${baseTopic}/level`,
+      topicMoveToLevel: cfg.topicMoveToLevel ?? `${baseTopic}/level/set`,
+      topicMoveToLevelWithOnOff: cfg.topicMoveToLevelWithOnOff ?? `${baseTopic}/level-with-on-off/set`,
     };
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
@@ -44,15 +46,19 @@ export const dimmableOutletDescriptor: DeviceDescriptor = {
       if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
     });
 
-    const levelHandler = (data: LevelRequest): void => {
+    ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
       const lv254 = data.request.level;
       const mqttBrightness = ctx.matterLevelToMqttBrightness(lv254, briMin, briMax);
       ctx.log.info(`[${cfg.name}] ? level ${lv254} (mqtt ${mqttBrightness}, range ${briMin}-${briMax})`);
-      if (cfg.topicSetBrightness) ctx.publish(cfg.topicSetBrightness, String(mqttBrightness), cfg.retain);
+      if (cfg.topicMoveToLevel) ctx.publish(cfg.topicMoveToLevel, String(mqttBrightness), cfg.retain);
+    }) as AnyHandler);
+    ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
+      const lv254 = data.request.level;
+      const mqttBrightness = ctx.matterLevelToMqttBrightness(lv254, briMin, briMax);
+      ctx.log.info(`[${cfg.name}] ? level ${lv254} (mqtt ${mqttBrightness}, range ${briMin}-${briMax})`);
+      if (cfg.topicMoveToLevelWithOnOff) ctx.publish(cfg.topicMoveToLevelWithOnOff, String(mqttBrightness), cfg.retain);
       if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, lv254 > 0 ? ON : OFF, cfg.retain);
-    };
-    ctx.onCmd(ep, 'moveToLevel', levelHandler as AnyHandler);
-    ctx.onCmd(ep, 'moveToLevelWithOnOff', levelHandler as AnyHandler);
+    }) as AnyHandler);
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {
@@ -60,9 +66,9 @@ export const dimmableOutletDescriptor: DeviceDescriptor = {
         if (v !== null) ctx.setAttr(ep, CID.OnOff, 'onOff', v);
       });
     }
-    if (cfg.topicBrightness) {
-      ctx.subscribe(cfg.topicBrightness, (p) => {
-        const raw = ctx.parseFloatPayload(p, [], cfg.payloadBrightnessJsonPath);
+    if (cfg.topicCurrentLevel) {
+      ctx.subscribe(cfg.topicCurrentLevel, (p) => {
+        const raw = ctx.parseFloatPayload(p, [], cfg.payloadCurrentLevelJsonPath);
         if (raw !== null && !isNaN(raw)) {
           const lv = ctx.mqttBrightnessToMatterLevel(raw, briMin, briMax);
           ctx.setAttr(ep, CID.LevelControl, 'currentLevel', lv);

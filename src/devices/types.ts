@@ -81,9 +81,10 @@ export interface MqttDeviceConfig {
   payloadBatteryEmpty?: string;
 
   // brightness (dimmable + colorlight)
-  topicBrightness?: string;
-  payloadBrightnessJsonPath?: string;
-  topicSetBrightness?: string;
+  topicCurrentLevel?: string;
+  payloadCurrentLevelJsonPath?: string;
+  topicMoveToLevel?: string;
+  topicMoveToLevelWithOnOff?: string;
   brightnessMin?: number;
   brightnessMax?: number;
 
@@ -153,9 +154,10 @@ export type EditableDeviceKey =
   | 'batteryMax'
   | 'payloadBatteryFull'
   | 'payloadBatteryEmpty'
-  | 'topicBrightness'
-  | 'payloadBrightnessJsonPath'
-  | 'topicSetBrightness'
+  | 'topicCurrentLevel'
+  | 'payloadCurrentLevelJsonPath'
+  | 'topicMoveToLevel'
+  | 'topicMoveToLevelWithOnOff'
   | 'brightnessMin'
   | 'brightnessMax'
   | 'topicColor'
@@ -225,9 +227,10 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'batteryMax',
   'payloadBatteryFull',
   'payloadBatteryEmpty',
-  'topicBrightness',
-  'payloadBrightnessJsonPath',
-  'topicSetBrightness',
+  'topicCurrentLevel',
+  'payloadCurrentLevelJsonPath',
+  'topicMoveToLevel',
+  'topicMoveToLevelWithOnOff',
   'brightnessMin',
   'brightnessMax',
   'topicColor',

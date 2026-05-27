@@ -13,9 +13,10 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
     'payloadOn',
     'payloadOff',
     'retain',
-    'topicBrightness',
-    'payloadBrightnessJsonPath',
-    'topicSetBrightness',
+    'topicCurrentLevel',
+    'payloadCurrentLevelJsonPath',
+    'topicMoveToLevel',
+    'topicMoveToLevelWithOnOff',
     'brightnessMin',
     'brightnessMax',
     'topicColor',
@@ -25,8 +26,9 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
   applyDefaults(cfg, baseTopic) {
     return {
       topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicBrightness: cfg.topicBrightness ?? `${baseTopic}/brightness`,
-      topicSetBrightness: cfg.topicSetBrightness ?? `${baseTopic}/brightness/set`,
+      topicCurrentLevel: cfg.topicCurrentLevel ?? `${baseTopic}/level`,
+      topicMoveToLevel: cfg.topicMoveToLevel ?? `${baseTopic}/level/set`,
+      topicMoveToLevelWithOnOff: cfg.topicMoveToLevelWithOnOff ?? `${baseTopic}/level-with-on-off/set`,
       topicColor: cfg.topicColor ?? `${baseTopic}/color`,
       topicSetColor: cfg.topicSetColor ?? `${baseTopic}/color/set`,
     };
@@ -50,12 +52,14 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
       if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
     });
 
-    const levelHandler = (data: LevelRequest): void => {
+    ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
       const mqttBrightness = ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax);
-      if (cfg.topicSetBrightness) ctx.publish(cfg.topicSetBrightness, String(mqttBrightness), cfg.retain);
-    };
-    ctx.onCmd(ep, 'moveToLevel', levelHandler as AnyHandler);
-    ctx.onCmd(ep, 'moveToLevelWithOnOff', levelHandler as AnyHandler);
+      if (cfg.topicMoveToLevel) ctx.publish(cfg.topicMoveToLevel, String(mqttBrightness), cfg.retain);
+    }) as AnyHandler);
+    ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
+      const mqttBrightness = ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax);
+      if (cfg.topicMoveToLevelWithOnOff) ctx.publish(cfg.topicMoveToLevelWithOnOff, String(mqttBrightness), cfg.retain);
+    }) as AnyHandler);
 
     ctx.onCmd(ep, 'moveToHueAndSaturation', ((data: HueSatRequest) => {
       const hue360 = Math.round((data.request.hue / 254) * 360);
@@ -76,9 +80,9 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
         if (v !== null) ctx.setAttr(ep, CID.OnOff, 'onOff', v);
       });
     }
-    if (cfg.topicBrightness) {
-      ctx.subscribe(cfg.topicBrightness, (p) => {
-        const raw = ctx.parseFloatPayload(p, [], cfg.payloadBrightnessJsonPath);
+    if (cfg.topicCurrentLevel) {
+      ctx.subscribe(cfg.topicCurrentLevel, (p) => {
+        const raw = ctx.parseFloatPayload(p, [], cfg.payloadCurrentLevelJsonPath);
         if (raw !== null && !isNaN(raw)) {
           const lv = ctx.mqttBrightnessToMatterLevel(raw, briMin, briMax);
           ctx.setAttr(ep, CID.LevelControl, 'currentLevel', lv);
