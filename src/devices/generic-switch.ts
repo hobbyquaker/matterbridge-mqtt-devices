@@ -7,8 +7,8 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
   type: 'generic-switch',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAction', 'payloadActionJsonPath', 'topicActionPress', 'topicActionDouble', 'topicActionLong'],
-    settings: [...COMMON_SETTINGS_KEYS, 'payloadPress', 'payloadDouble', 'payloadLong'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAction', 'payloadActionJsonPath', 'topicActionPress', 'topicActionDouble', 'topicActionLong', 'topicActionInitialPress', 'topicActionLongRelease'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadPress', 'payloadDouble', 'payloadLong', 'payloadInitialPress', 'payloadLongRelease'],
   },
   applyDefaults(_cfg, _baseTopic) {
     return {};
@@ -17,6 +17,8 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
     const PRESS = cfg.payloadPress ?? 'PRESS';
     const DOUBLE = cfg.payloadDouble ?? 'DOUBLE';
     const LONG = cfg.payloadLong ?? 'LONG';
+    const INITIAL_PRESS = cfg.payloadInitialPress ?? 'INITIAL_PRESS';
+    const LONG_RELEASE = cfg.payloadLongRelease ?? 'LONG_RELEASE';
 
     const ep = new MatterbridgeEndpoint([genericSwitch, powerSource]);
     ctx.initEp(ep, cfg, 0x800d);
@@ -32,6 +34,10 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
           void ep.triggerSwitchEvent('Double', ctx.log);
         } else if (payload === LONG) {
           void ep.triggerSwitchEvent('Long', ctx.log);
+        } else if (payload === INITIAL_PRESS) {
+          void ep.triggerSwitchEvent('Press', ctx.log);
+        } else if (payload === LONG_RELEASE) {
+          void ep.triggerSwitchEvent('Release', ctx.log);
         }
       });
     }
@@ -48,6 +54,16 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
     if (cfg.topicActionLong) {
       ctx.subscribe(cfg.topicActionLong, () => {
         void ep.triggerSwitchEvent('Long', ctx.log);
+      });
+    }
+    if (cfg.topicActionInitialPress) {
+      ctx.subscribe(cfg.topicActionInitialPress, () => {
+        void ep.triggerSwitchEvent('Press', ctx.log);
+      });
+    }
+    if (cfg.topicActionLongRelease) {
+      ctx.subscribe(cfg.topicActionLongRelease, () => {
+        void ep.triggerSwitchEvent('Release', ctx.log);
       });
     }
 

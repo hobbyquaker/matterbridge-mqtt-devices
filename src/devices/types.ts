@@ -264,9 +264,13 @@ export interface MqttDeviceConfig {
   topicActionPress?: string;
   topicActionDouble?: string;
   topicActionLong?: string;
+  topicActionInitialPress?: string;
+  topicActionLongRelease?: string;
   payloadPress?: string;
   payloadDouble?: string;
   payloadLong?: string;
+  payloadInitialPress?: string;
+  payloadLongRelease?: string;
 
   // door_lock
   topicLockState?: string;
@@ -480,6 +484,8 @@ export type EditableDeviceKey =
   | 'payloadPress'
   | 'payloadDouble'
   | 'payloadLong'
+  | 'payloadInitialPress'
+  | 'payloadLongRelease'
   | 'topicLocalTemp'
   | 'payloadLocalTempJsonPath'
   | 'topicSystemMode'
@@ -522,6 +528,8 @@ export type EditableDeviceKey =
   | 'topicActionPress'
   | 'topicActionDouble'
   | 'topicActionLong'
+  | 'topicActionInitialPress'
+  | 'topicActionLongRelease'
   | 'topicLockState'
   | 'payloadLockStateJsonPath'
   | 'topicSetLockState'
@@ -717,6 +725,8 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'payloadPress',
   'payloadDouble',
   'payloadLong',
+  'payloadInitialPress',
+  'payloadLongRelease',
   'topicLocalTemp',
   'payloadLocalTempJsonPath',
   'topicSystemMode',
@@ -759,6 +769,8 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'topicActionPress',
   'topicActionDouble',
   'topicActionLong',
+  'topicActionInitialPress',
+  'topicActionLongRelease',
   'topicLockState',
   'payloadLockStateJsonPath',
   'topicSetLockState',
