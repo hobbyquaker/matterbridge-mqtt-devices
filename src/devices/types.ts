@@ -130,6 +130,9 @@ export interface MqttDeviceConfig {
   // generic_switch
   topicAction?: string;
   payloadActionJsonPath?: string;
+  topicActionPress?: string;
+  topicActionDouble?: string;
+  topicActionLong?: string;
   payloadPress?: string;
   payloadDouble?: string;
   payloadLong?: string;
@@ -211,6 +214,9 @@ export type EditableDeviceKey =
   | 'topicSetCoverState'
   | 'topicAction'
   | 'payloadActionJsonPath'
+  | 'topicActionPress'
+  | 'topicActionDouble'
+  | 'topicActionLong'
   | 'topicLockState'
   | 'payloadLockStateJsonPath'
   | 'topicSetLockState'
@@ -308,6 +314,9 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'topicSetCoverState',
   'topicAction',
   'payloadActionJsonPath',
+  'topicActionPress',
+  'topicActionDouble',
+  'topicActionLong',
   'topicLockState',
   'payloadLockStateJsonPath',
   'topicSetLockState',

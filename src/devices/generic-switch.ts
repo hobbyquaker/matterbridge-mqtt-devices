@@ -7,7 +7,7 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
   type: 'generic-switch',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAction', 'payloadActionJsonPath'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAction', 'payloadActionJsonPath', 'topicActionPress', 'topicActionDouble', 'topicActionLong'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadPress', 'payloadDouble', 'payloadLong'],
   },
   applyDefaults(_cfg, _baseTopic) {
@@ -36,6 +36,24 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
           ctx.log.info(`[${cfg.name}] ? Long press`);
           void ep.triggerSwitchEvent('Long', ctx.log);
         }
+      });
+    }
+    if (cfg.topicActionPress) {
+      ctx.subscribe(cfg.topicActionPress, () => {
+        ctx.log.info(`[${cfg.name}] ? Single press`);
+        void ep.triggerSwitchEvent('Single', ctx.log);
+      });
+    }
+    if (cfg.topicActionDouble) {
+      ctx.subscribe(cfg.topicActionDouble, () => {
+        ctx.log.info(`[${cfg.name}] ? Double press`);
+        void ep.triggerSwitchEvent('Double', ctx.log);
+      });
+    }
+    if (cfg.topicActionLong) {
+      ctx.subscribe(cfg.topicActionLong, () => {
+        ctx.log.info(`[${cfg.name}] ? Long press`);
+        void ep.triggerSwitchEvent('Long', ctx.log);
       });
     }
 
