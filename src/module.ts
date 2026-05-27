@@ -4,7 +4,7 @@
  * @file module.ts
  * @author hobbyquaker
  * @created 2026-05-26
- * @version 0.9.0
+ * @version 0.9.1
  * @license Apache-2.0
  *
  * Copyright 2026 hobbyquaker.
