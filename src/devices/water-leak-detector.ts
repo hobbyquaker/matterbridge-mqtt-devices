@@ -1,11 +1,11 @@
-import { MatterbridgeEndpoint, powerSource, waterLeakDetector } from 'matterbridge';
+﻿import { MatterbridgeEndpoint, powerSource, waterLeakDetector } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
 export const waterLeakDetectorDescriptor: DeviceDescriptor = {
   type: 'water-leak-detector',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadOn', 'payloadOff'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadOn', 'payloadOff'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -18,9 +18,9 @@ export const waterLeakDetectorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultBooleanStateClusterServer(false);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const v = ctx.parseOnOff(p, LEAK, DRY, cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const v = ctx.parseOnOff(p, LEAK, DRY, cfg.payloadOnOffJsonPath);
         if (v !== null) {
           ctx.log.info(`[${cfg.name}] ? ${v ? 'LEAK' : 'DRY'}`);
           ctx.setAttr(ep, CID.BooleanState, 'stateValue', v);

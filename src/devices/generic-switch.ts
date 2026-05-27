@@ -1,11 +1,11 @@
-import { genericSwitch, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+﻿import { genericSwitch, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { COMMON_KEYS } from './types.js';
 
 export const genericSwitchDescriptor: DeviceDescriptor = {
   type: 'generic-switch',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadPress', 'payloadDouble', 'payloadLong'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadPress', 'payloadDouble', 'payloadLong'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -19,9 +19,9 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultSwitchClusterServer();
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const payload = ctx.extractPayloadValue(p, cfg.stateJsonPath) ?? p;
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const payload = ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath) ?? p;
         if (payload === PRESS) {
           ctx.log.info(`[${cfg.name}] ? Single press`);
           void ep.triggerSwitchEvent('Single', ctx.log);

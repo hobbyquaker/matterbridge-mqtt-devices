@@ -525,10 +525,10 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   private subscribeToAvailabilityAndBattery(ep: MatterbridgeEndpoint, cfg: MqttDeviceConfig): void {
     // Availability / online state
-    if (cfg.availabilityTopic) {
+    if (cfg.topicAvailability) {
       const onlinePayload = cfg.payloadOnline ?? 'online';
-      this.subscribe(cfg.availabilityTopic, (p) => {
-        const state = this.toPayloadString(this.extractPayloadValue(p, cfg.availabilityJsonPath));
+      this.subscribe(cfg.topicAvailability, (p) => {
+        const state = this.toPayloadString(this.extractPayloadValue(p, cfg.payloadpayloadAvailabilityJsonPath));
         const isOnline = state === onlinePayload;
         this.log.info(`[${cfg.name}] availability: ${isOnline ? 'online' : 'offline'}`);
         // Set BridgedDeviceBasicInformation.reachable attribute
@@ -538,13 +538,13 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     }
 
     // Battery level
-    if (cfg.batteryTopic) {
+    if (cfg.topicBattery) {
       if (cfg.batteryValueBased) {
         // Value-based: expect numeric percentage 0-100 or custom range
         const min = cfg.batteryMin ?? 0;
         const max = cfg.batteryMax ?? 100;
-        this.subscribe(cfg.batteryTopic, (p) => {
-          const raw = this.parseFloatPayload(p, ['battery', 'level', 'percent', 'value'], cfg.batteryJsonPath);
+        this.subscribe(cfg.topicBattery, (p) => {
+          const raw = this.parseFloatPayload(p, ['battery', 'level', 'percent', 'value'], cfg.payloadpayloadBatteryJsonPath);
           if (raw !== null && !isNaN(raw)) {
             // Clamp and convert to 0-100 percentage
             const clamped = Math.max(min, Math.min(max, raw));
@@ -558,8 +558,8 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
         // Boolean-based: FULL or EMPTY payloads
         const fullPayload = cfg.payloadBatteryFull ?? 'full';
         const emptyPayload = cfg.payloadBatteryEmpty ?? 'empty';
-        this.subscribe(cfg.batteryTopic, (p) => {
-          const state = this.toPayloadString(this.extractPayloadValue(p, cfg.batteryJsonPath));
+        this.subscribe(cfg.topicBattery, (p) => {
+          const state = this.toPayloadString(this.extractPayloadValue(p, cfg.payloadpayloadBatteryJsonPath));
           let pct = 50;
           if (state === fullPayload) pct = 100;
           else if (state === emptyPayload) pct = 0;
@@ -820,7 +820,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       id,
       name,
       type,
-      stateTopic: cfg.stateTopic ?? `${baseTopic}/state`,
+      topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,
     };
 
     if (!cfg.id) {

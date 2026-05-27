@@ -1,4 +1,4 @@
-import { lightSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+﻿import { lightSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
@@ -17,7 +17,7 @@ function luxToMatter(lux: number): number {
 
 export const lightSensorDescriptor: DeviceDescriptor = {
   type: 'light-sensor',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -27,9 +27,9 @@ export const lightSensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultIlluminanceMeasurementClusterServer(1, 1, 0xfffe);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const lux = ctx.parseFloatPayload(p, [], cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const lux = ctx.parseFloatPayload(p, [], cfg.payloadOnOffJsonPath);
         if (lux !== null && !isNaN(lux)) {
           const mv = luxToMatter(lux);
           ctx.log.info(`[${cfg.name}] ? ${lux} lux ? measuredValue ${mv}`);

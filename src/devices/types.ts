@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared types, constants, and interfaces for matterbridge-mqtt device descriptors.
  */
 
@@ -55,16 +55,16 @@ export interface MqttDeviceConfig {
   type?: DeviceKind;
   configUrl?: string;
 
-  stateTopic?: string;
-  stateJsonPath?: string;
-  commandTopic?: string;
+  topicOnOff?: string;
+  payloadOnOffJsonPath?: string;
+  topicSetOnOff?: string;
   payloadOn?: string;
   payloadOff?: string;
   retain?: boolean;
 
   // availability / online state
-  availabilityTopic?: string;
-  availabilityJsonPath?: string;
+  topicAvailability?: string;
+  payloadpayloadAvailabilityJsonPath?: string;
   payloadOnline?: string;
   payloadOffline?: string;
 
@@ -72,8 +72,8 @@ export interface MqttDeviceConfig {
   powerSource?: 'battery' | 'mains';
 
   // battery (value-based or boolean)
-  batteryTopic?: string;
-  batteryJsonPath?: string;
+  topicBattery?: string;
+  payloadpayloadBatteryJsonPath?: string;
   batteryValueBased?: boolean;
   batteryMin?: number;
   batteryMax?: number;
@@ -81,39 +81,39 @@ export interface MqttDeviceConfig {
   payloadBatteryEmpty?: string;
 
   // brightness (dimmable + colorlight)
-  brightnessStateTopic?: string;
-  brightnessStateJsonPath?: string;
-  brightnessCommandTopic?: string;
+  topicBrightness?: string;
+  payloadBrightnessJsonPath?: string;
+  topicSetBrightness?: string;
   brightnessMin?: number;
   brightnessMax?: number;
 
   // color (colorlight)
-  colorStateTopic?: string;
-  colorStateJsonPath?: string;
-  colorCommandTopic?: string;
+  topicColor?: string;
+  payloadColorJsonPath?: string;
+  topicSetColor?: string;
 
   // cover
   payloadOpen?: string;
   payloadClosed?: string;
-  positionStateTopic?: string;
-  positionStateJsonPath?: string;
-  positionCommandTopic?: string;
+  topicPosition?: string;
+  payloadPositionJsonPath?: string;
+  topicSetPosition?: string;
   positionMin?: number;
   positionMax?: number;
   payloadStop?: string;
 
   // fan
-  speedStateTopic?: string;
-  speedStateJsonPath?: string;
-  speedCommandTopic?: string;
-  speedStepTopic?: string;
+  topicSpeed?: string;
+  payloadSpeedJsonPath?: string;
+  topicSetSpeed?: string;
+  topicSetSpeedStep?: string;
   speedMin?: number;
   speedMax?: number;
 
   // thermostat
-  targetTempStateTopic?: string;
-  targetTempStateJsonPath?: string;
-  targetTempCommandTopic?: string;
+  topicTargetTemp?: string;
+  payloadTargetTempJsonPath?: string;
+  topicSetTargetTemp?: string;
 
   // generic_switch
   payloadPress?: string;
@@ -128,56 +128,56 @@ export interface MqttDeviceConfig {
   payloadAlarmNormal?: string;
   payloadAlarmWarning?: string;
   payloadAlarmCritical?: string;
-  coStateTopic?: string;
-  coStateJsonPath?: string;
+  topicCo?: string;
+  payloadCoJsonPath?: string;
 }
 
 // ── Editable keys for the web editor ──────────────────────────────────────
 
 export type EditableDeviceKey =
-  | 'stateTopic'
-  | 'stateJsonPath'
-  | 'commandTopic'
+  | 'topicOnOff'
+  | 'payloadOnOffJsonPath'
+  | 'topicSetOnOff'
   | 'payloadOn'
   | 'payloadOff'
   | 'retain'
-  | 'availabilityTopic'
-  | 'availabilityJsonPath'
+  | 'topicAvailability'
+  | 'payloadpayloadAvailabilityJsonPath'
   | 'payloadOnline'
   | 'payloadOffline'
   | 'powerSource'
-  | 'batteryTopic'
-  | 'batteryJsonPath'
+  | 'topicBattery'
+  | 'payloadpayloadBatteryJsonPath'
   | 'batteryValueBased'
   | 'batteryMin'
   | 'batteryMax'
   | 'payloadBatteryFull'
   | 'payloadBatteryEmpty'
-  | 'brightnessStateTopic'
-  | 'brightnessStateJsonPath'
-  | 'brightnessCommandTopic'
+  | 'topicBrightness'
+  | 'payloadBrightnessJsonPath'
+  | 'topicSetBrightness'
   | 'brightnessMin'
   | 'brightnessMax'
-  | 'colorStateTopic'
-  | 'colorStateJsonPath'
-  | 'colorCommandTopic'
+  | 'topicColor'
+  | 'payloadColorJsonPath'
+  | 'topicSetColor'
   | 'payloadOpen'
   | 'payloadClosed'
   | 'payloadStop'
-  | 'positionStateTopic'
-  | 'positionStateJsonPath'
-  | 'positionCommandTopic'
+  | 'topicPosition'
+  | 'payloadPositionJsonPath'
+  | 'topicSetPosition'
   | 'positionMin'
   | 'positionMax'
-  | 'speedStateTopic'
-  | 'speedStateJsonPath'
-  | 'speedCommandTopic'
-  | 'speedStepTopic'
+  | 'topicSpeed'
+  | 'payloadSpeedJsonPath'
+  | 'topicSetSpeed'
+  | 'topicSetSpeedStep'
   | 'speedMin'
   | 'speedMax'
-  | 'targetTempStateTopic'
-  | 'targetTempStateJsonPath'
-  | 'targetTempCommandTopic'
+  | 'topicTargetTemp'
+  | 'payloadTargetTempJsonPath'
+  | 'topicSetTargetTemp'
   | 'payloadPress'
   | 'payloadDouble'
   | 'payloadLong'
@@ -186,18 +186,18 @@ export type EditableDeviceKey =
   | 'payloadAlarmNormal'
   | 'payloadAlarmWarning'
   | 'payloadAlarmCritical'
-  | 'coStateTopic'
-  | 'coStateJsonPath';
+  | 'topicCo'
+  | 'payloadCoJsonPath';
 
 /** Keys common to all device types (availability + battery + power source). */
 export const COMMON_KEYS: readonly EditableDeviceKey[] = [
-  'availabilityTopic',
-  'availabilityJsonPath',
+  'topicAvailability',
+  'payloadpayloadAvailabilityJsonPath',
   'payloadOnline',
   'payloadOffline',
   'powerSource',
-  'batteryTopic',
-  'batteryJsonPath',
+  'topicBattery',
+  'payloadpayloadBatteryJsonPath',
   'batteryValueBased',
   'batteryMin',
   'batteryMax',
@@ -207,49 +207,49 @@ export const COMMON_KEYS: readonly EditableDeviceKey[] = [
 
 /** All possible editable keys (union across all device types), used for safe deserialization. */
 export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
-  'stateTopic',
-  'stateJsonPath',
-  'commandTopic',
+  'topicOnOff',
+  'payloadOnOffJsonPath',
+  'topicSetOnOff',
   'payloadOn',
   'payloadOff',
   'retain',
-  'availabilityTopic',
-  'availabilityJsonPath',
+  'topicAvailability',
+  'payloadpayloadAvailabilityJsonPath',
   'payloadOnline',
   'payloadOffline',
   'powerSource',
-  'batteryTopic',
-  'batteryJsonPath',
+  'topicBattery',
+  'payloadpayloadBatteryJsonPath',
   'batteryValueBased',
   'batteryMin',
   'batteryMax',
   'payloadBatteryFull',
   'payloadBatteryEmpty',
-  'brightnessStateTopic',
-  'brightnessStateJsonPath',
-  'brightnessCommandTopic',
+  'topicBrightness',
+  'payloadBrightnessJsonPath',
+  'topicSetBrightness',
   'brightnessMin',
   'brightnessMax',
-  'colorStateTopic',
-  'colorStateJsonPath',
-  'colorCommandTopic',
+  'topicColor',
+  'payloadColorJsonPath',
+  'topicSetColor',
   'payloadOpen',
   'payloadClosed',
   'payloadStop',
-  'positionStateTopic',
-  'positionStateJsonPath',
-  'positionCommandTopic',
+  'topicPosition',
+  'payloadPositionJsonPath',
+  'topicSetPosition',
   'positionMin',
   'positionMax',
-  'speedStateTopic',
-  'speedStateJsonPath',
-  'speedCommandTopic',
-  'speedStepTopic',
+  'topicSpeed',
+  'payloadSpeedJsonPath',
+  'topicSetSpeed',
+  'topicSetSpeedStep',
   'speedMin',
   'speedMax',
-  'targetTempStateTopic',
-  'targetTempStateJsonPath',
-  'targetTempCommandTopic',
+  'topicTargetTemp',
+  'payloadTargetTempJsonPath',
+  'topicSetTargetTemp',
   'payloadPress',
   'payloadDouble',
   'payloadLong',
@@ -258,8 +258,8 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'payloadAlarmNormal',
   'payloadAlarmWarning',
   'payloadAlarmCritical',
-  'coStateTopic',
-  'coStateJsonPath',
+  'topicCo',
+  'payloadCoJsonPath',
 ];
 
 /** Keys whose values are stored as numbers, not strings. */

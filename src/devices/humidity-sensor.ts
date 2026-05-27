@@ -1,11 +1,11 @@
-import { humiditySensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+﻿import { humiditySensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
 export const humiditySensorDescriptor: DeviceDescriptor = {
   type: 'humidity-sensor',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -15,9 +15,9 @@ export const humiditySensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultRelativeHumidityMeasurementClusterServer(5000);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const h = ctx.parseFloatPayload(p, ['humidity', 'value'], cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const h = ctx.parseFloatPayload(p, ['humidity', 'value'], cfg.payloadOnOffJsonPath);
         if (h !== null && !isNaN(h)) {
           ctx.log.info(`[${cfg.name}] ? ${h}%`);
           ctx.setAttr(ep, CID.RelativeHumidityMeasurement, 'measuredValue', Math.round(h * 100));

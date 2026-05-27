@@ -1,4 +1,4 @@
-import * as matterbridge from 'matterbridge';
+﻿import * as matterbridge from 'matterbridge';
 import { MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
@@ -27,12 +27,12 @@ const thermostatDeviceType: unknown = mb['thermostat'] ??
 
 export const thermostatDescriptor: DeviceDescriptor = {
   type: 'thermostat',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'targetTempStateTopic', 'targetTempStateJsonPath', 'targetTempCommandTopic', 'retain'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath', 'topicSetTargetTemp', 'retain'],
   applyDefaults(cfg, baseTopic) {
     return {
-      commandTopic: cfg.commandTopic ?? `${baseTopic}/set`,
-      targetTempStateTopic: cfg.targetTempStateTopic ?? `${baseTopic}/target`,
-      targetTempCommandTopic: cfg.targetTempCommandTopic ?? `${baseTopic}/target/set`,
+      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
+      topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/target`,
+      topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/target/set`,
     };
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
@@ -55,14 +55,14 @@ export const thermostatDescriptor: DeviceDescriptor = {
       (newValue: number) => {
         const targetC = newValue / 100;
         ctx.log.info(`[${cfg.name}] ? Nouvelle consigne : ${targetC}�C`);
-        if (cfg.targetTempCommandTopic) ctx.publish(cfg.targetTempCommandTopic, String(targetC), cfg.retain);
+        if (cfg.topicSetTargetTemp) ctx.publish(cfg.topicSetTargetTemp, String(targetC), cfg.retain);
       },
       ctx.log,
     );
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'local_temperature'], cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'local_temperature'], cfg.payloadOnOffJsonPath);
         if (c !== null) {
           ctx.log.info(`[${cfg.name}] ? localTemperature ${c}�C`);
           ctx.setAttr(ep, CID.Thermostat, 'localTemperature', Math.round(c * 100));
@@ -70,9 +70,9 @@ export const thermostatDescriptor: DeviceDescriptor = {
       });
     }
 
-    if (cfg.targetTempStateTopic) {
-      ctx.subscribe(cfg.targetTempStateTopic, (p) => {
-        const c = ctx.parseFloatPayload(p, ['target_temperature', 'occupied_heating_setpoint'], cfg.targetTempStateJsonPath);
+    if (cfg.topicTargetTemp) {
+      ctx.subscribe(cfg.topicTargetTemp, (p) => {
+        const c = ctx.parseFloatPayload(p, ['target_temperature', 'occupied_heating_setpoint'], cfg.payloadTargetTempJsonPath);
         if (c !== null) {
           ctx.log.info(`[${cfg.name}] ? occupiedHeatingSetpoint ${c}�C`);
           ctx.setAttr(ep, CID.Thermostat, 'occupiedHeatingSetpoint', Math.round(c * 100));

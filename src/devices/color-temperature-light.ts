@@ -1,4 +1,4 @@
-import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+﻿import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { AnyHandler, ColorTempRequest, DeviceContext, DeviceDescriptor, HueSatRequest, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
@@ -7,28 +7,28 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
   type: 'color-temperature-light',
   editableKeys: [
     ...COMMON_KEYS,
-    'stateTopic',
-    'stateJsonPath',
-    'commandTopic',
+    'topicOnOff',
+    'payloadOnOffJsonPath',
+    'topicSetOnOff',
     'payloadOn',
     'payloadOff',
     'retain',
-    'brightnessStateTopic',
-    'brightnessStateJsonPath',
-    'brightnessCommandTopic',
+    'topicBrightness',
+    'payloadBrightnessJsonPath',
+    'topicSetBrightness',
     'brightnessMin',
     'brightnessMax',
-    'colorStateTopic',
-    'colorStateJsonPath',
-    'colorCommandTopic',
+    'topicColor',
+    'payloadColorJsonPath',
+    'topicSetColor',
   ],
   applyDefaults(cfg, baseTopic) {
     return {
-      commandTopic: cfg.commandTopic ?? `${baseTopic}/set`,
-      brightnessStateTopic: cfg.brightnessStateTopic ?? `${baseTopic}/brightness`,
-      brightnessCommandTopic: cfg.brightnessCommandTopic ?? `${baseTopic}/brightness/set`,
-      colorStateTopic: cfg.colorStateTopic ?? `${baseTopic}/color`,
-      colorCommandTopic: cfg.colorCommandTopic ?? `${baseTopic}/color/set`,
+      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
+      topicBrightness: cfg.topicBrightness ?? `${baseTopic}/brightness`,
+      topicSetBrightness: cfg.topicSetBrightness ?? `${baseTopic}/brightness/set`,
+      topicColor: cfg.topicColor ?? `${baseTopic}/color`,
+      topicSetColor: cfg.topicSetColor ?? `${baseTopic}/color/set`,
     };
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
@@ -44,15 +44,15 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
     ep.createDefaultColorControlClusterServer();
 
     ctx.onCmd(ep, 'on', () => {
-      if (cfg.commandTopic) ctx.publish(cfg.commandTopic, ON, cfg.retain);
+      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
     });
     ctx.onCmd(ep, 'off', () => {
-      if (cfg.commandTopic) ctx.publish(cfg.commandTopic, OFF, cfg.retain);
+      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
     });
 
     const levelHandler = (data: LevelRequest): void => {
       const mqttBrightness = ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax);
-      if (cfg.brightnessCommandTopic) ctx.publish(cfg.brightnessCommandTopic, String(mqttBrightness), cfg.retain);
+      if (cfg.topicSetBrightness) ctx.publish(cfg.topicSetBrightness, String(mqttBrightness), cfg.retain);
     };
     ctx.onCmd(ep, 'moveToLevel', levelHandler as AnyHandler);
     ctx.onCmd(ep, 'moveToLevelWithOnOff', levelHandler as AnyHandler);
@@ -61,33 +61,33 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
       const hue360 = Math.round((data.request.hue / 254) * 360);
       const sat100 = Math.round((data.request.saturation / 254) * 100);
       ctx.log.info(`[${cfg.name}] ? H${hue360}� S${sat100}%`);
-      if (cfg.colorCommandTopic) ctx.publish(cfg.colorCommandTopic, JSON.stringify({ hue: hue360, saturation: sat100 }), cfg.retain);
+      if (cfg.topicSetColor) ctx.publish(cfg.topicSetColor, JSON.stringify({ hue: hue360, saturation: sat100 }), cfg.retain);
     }) as AnyHandler);
 
     ctx.onCmd(ep, 'moveToColorTemperature', ((data: ColorTempRequest) => {
       const mireds = data.request.colorTemperatureMireds;
       ctx.log.info(`[${cfg.name}] ? ${mireds} mireds`);
-      if (cfg.colorCommandTopic) ctx.publish(cfg.colorCommandTopic, JSON.stringify({ colorTemp: mireds }), cfg.retain);
+      if (cfg.topicSetColor) ctx.publish(cfg.topicSetColor, JSON.stringify({ colorTemp: mireds }), cfg.retain);
     }) as AnyHandler);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const v = ctx.parseOnOff(p, ON, OFF, cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const v = ctx.parseOnOff(p, ON, OFF, cfg.payloadOnOffJsonPath);
         if (v !== null) ctx.setAttr(ep, CID.OnOff, 'onOff', v);
       });
     }
-    if (cfg.brightnessStateTopic) {
-      ctx.subscribe(cfg.brightnessStateTopic, (p) => {
-        const raw = ctx.parseFloatPayload(p, [], cfg.brightnessStateJsonPath);
+    if (cfg.topicBrightness) {
+      ctx.subscribe(cfg.topicBrightness, (p) => {
+        const raw = ctx.parseFloatPayload(p, [], cfg.payloadBrightnessJsonPath);
         if (raw !== null && !isNaN(raw)) {
           const lv = ctx.mqttBrightnessToMatterLevel(raw, briMin, briMax);
           ctx.setAttr(ep, CID.LevelControl, 'currentLevel', lv);
         }
       });
     }
-    if (cfg.colorStateTopic) {
-      ctx.subscribe(cfg.colorStateTopic, (p) => {
-        const extracted = ctx.extractPayloadValue(p, cfg.colorStateJsonPath);
+    if (cfg.topicColor) {
+      ctx.subscribe(cfg.topicColor, (p) => {
+        const extracted = ctx.extractPayloadValue(p, cfg.payloadColorJsonPath);
         if (extracted !== undefined && extracted !== null && typeof extracted === 'object') {
           const d = extracted as Record<string, number>;
           if (d['hue'] !== undefined) ctx.setAttr(ep, CID.ColorControl, 'currentHue', Math.round((d['hue'] / 360) * 254));

@@ -1,16 +1,16 @@
-import { fanDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+﻿import { fanDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
 export const fanDescriptor: DeviceDescriptor = {
   type: 'fan',
-  editableKeys: [...COMMON_KEYS, 'speedStateTopic', 'speedStateJsonPath', 'speedCommandTopic', 'speedStepTopic', 'speedMin', 'speedMax', 'retain'],
+  editableKeys: [...COMMON_KEYS, 'topicSpeed', 'payloadSpeedJsonPath', 'topicSetSpeed', 'topicSetSpeedStep', 'speedMin', 'speedMax', 'retain'],
   applyDefaults(cfg, baseTopic) {
     return {
-      speedStateTopic: cfg.speedStateTopic ?? `${baseTopic}/speed`,
-      speedCommandTopic: cfg.speedCommandTopic ?? `${baseTopic}/speed/set`,
-      speedStepTopic: cfg.speedStepTopic ?? `${baseTopic}/speed/step`,
+      topicSpeed: cfg.topicSpeed ?? `${baseTopic}/speed`,
+      topicSetSpeed: cfg.topicSetSpeed ?? `${baseTopic}/speed/set`,
+      topicSetSpeedStep: cfg.topicSetSpeedStep ?? `${baseTopic}/speed/step`,
     };
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
@@ -37,20 +37,20 @@ export const fanDescriptor: DeviceDescriptor = {
         currentLevel = newLevel;
         ctx.log.info(`[${cfg.name}] ? level ${newLevel} (${newPct}%)`);
 
-        if (cfg.speedCommandTopic) ctx.publish(cfg.speedCommandTopic, JSON.stringify({ level: newLevel, percent: newPct }), cfg.retain);
+        if (cfg.topicSetSpeed) ctx.publish(cfg.topicSetSpeed, JSON.stringify({ level: newLevel, percent: newPct }), cfg.retain);
 
-        if (cfg.speedStepTopic) {
+        if (cfg.topicSetSpeedStep) {
           const delta = newLevel - prev;
-          if (delta !== 0) ctx.publish(cfg.speedStepTopic, delta > 0 ? '+1' : '-1', cfg.retain);
+          if (delta !== 0) ctx.publish(cfg.topicSetSpeedStep, delta > 0 ? '+1' : '-1', cfg.retain);
         }
       },
       ctx.log,
     );
 
-    if (cfg.speedStateTopic) {
-      ctx.subscribe(cfg.speedStateTopic, (p) => {
+    if (cfg.topicSpeed) {
+      ctx.subscribe(cfg.topicSpeed, (p) => {
         let lv: number | null = null;
-        const extracted = ctx.extractPayloadValue(p, cfg.speedStateJsonPath);
+        const extracted = ctx.extractPayloadValue(p, cfg.payloadSpeedJsonPath);
 
         if (extracted !== null && extracted !== undefined && typeof extracted === 'object') {
           const o = extracted as Record<string, unknown>;

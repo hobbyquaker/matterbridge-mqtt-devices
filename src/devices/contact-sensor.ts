@@ -1,11 +1,11 @@
-import { contactSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+﻿import { contactSensor, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
 export const contactSensorDescriptor: DeviceDescriptor = {
   type: 'contact-sensor',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadOpen', 'payloadClosed'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadOpen', 'payloadClosed'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -18,9 +18,9 @@ export const contactSensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultBooleanStateClusterServer(true);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const state = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.stateJsonPath));
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const state = ctx.toPayloadString(ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath));
         let contact: boolean;
         if (state === OPEN) contact = false;
         else if (state === CLOSED) contact = true;

@@ -1,11 +1,11 @@
-import { MatterbridgeEndpoint, powerSource, temperatureSensor } from 'matterbridge';
+﻿import { MatterbridgeEndpoint, powerSource, temperatureSensor } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
 
 export const temperatureSensorDescriptor: DeviceDescriptor = {
   type: 'temperature-sensor',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -15,9 +15,9 @@ export const temperatureSensorDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultTemperatureMeasurementClusterServer(2000);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'value'], cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const c = ctx.parseFloatPayload(p, ['temperature', 'temp', 'value'], cfg.payloadOnOffJsonPath);
         if (c !== null && !isNaN(c)) {
           ctx.log.info(`[${cfg.name}] ? ${c}�C`);
           ctx.setAttr(ep, CID.TemperatureMeasurement, 'measuredValue', Math.round(c * 100));

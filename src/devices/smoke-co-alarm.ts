@@ -1,4 +1,4 @@
-import { MatterbridgeEndpoint, powerSource, smokeCoAlarm } from 'matterbridge';
+﻿import { MatterbridgeEndpoint, powerSource, smokeCoAlarm } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
@@ -23,7 +23,7 @@ function parseAlarmState(payload: string, normal: string, warning: string, criti
 
 export const smokeCoAlarmDescriptor: DeviceDescriptor = {
   type: 'smoke-co-alarm',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath', 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical', 'coStateTopic', 'coStateJsonPath'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'payloadAlarmNormal', 'payloadAlarmWarning', 'payloadAlarmCritical', 'topicCo', 'payloadCoJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -37,17 +37,17 @@ export const smokeCoAlarmDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultSmokeCOAlarmClusterServer(AlarmState.Normal, AlarmState.Normal);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const payload = String(ctx.extractPayloadValue(p, cfg.stateJsonPath) ?? p).trim();
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const payload = String(ctx.extractPayloadValue(p, cfg.payloadOnOffJsonPath) ?? p).trim();
         const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
         ctx.log.info(`[${cfg.name}] ? smokeState ${state} (payload "${payload}")`);
         ctx.setAttr(ep, CID.SmokeCoAlarm, 'smokeState', state);
       });
     }
-    if (cfg.coStateTopic) {
-      ctx.subscribe(cfg.coStateTopic, (p) => {
-        const payload = String(ctx.extractPayloadValue(p, cfg.coStateJsonPath) ?? p).trim();
+    if (cfg.topicCo) {
+      ctx.subscribe(cfg.topicCo, (p) => {
+        const payload = String(ctx.extractPayloadValue(p, cfg.payloadCoJsonPath) ?? p).trim();
         const state = parseAlarmState(payload, NORMAL, WARNING, CRITICAL);
         ctx.log.info(`[${cfg.name}] ? coState ${state} (payload "${payload}")`);
         ctx.setAttr(ep, CID.SmokeCoAlarm, 'coState', state);

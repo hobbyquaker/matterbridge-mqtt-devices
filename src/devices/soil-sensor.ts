@@ -1,4 +1,4 @@
-import { MatterbridgeEndpoint, powerSource, soilSensor } from 'matterbridge';
+﻿import { MatterbridgeEndpoint, powerSource, soilSensor } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_KEYS } from './types.js';
@@ -14,7 +14,7 @@ import { CID, COMMON_KEYS } from './types.js';
  */
 export const soilSensorDescriptor: DeviceDescriptor = {
   type: 'soil-sensor',
-  editableKeys: [...COMMON_KEYS, 'stateTopic', 'stateJsonPath'],
+  editableKeys: [...COMMON_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
   applyDefaults(_cfg, _baseTopic) {
     return {};
   },
@@ -25,9 +25,9 @@ export const soilSensorDescriptor: DeviceDescriptor = {
     // Proxy: RelativeHumidityMeasurement represents soil moisture 0�100 %
     ep.createDefaultRelativeHumidityMeasurementClusterServer(0);
 
-    if (cfg.stateTopic) {
-      ctx.subscribe(cfg.stateTopic, (p) => {
-        const raw = ctx.parseFloatPayload(p, [], cfg.stateJsonPath);
+    if (cfg.topicOnOff) {
+      ctx.subscribe(cfg.topicOnOff, (p) => {
+        const raw = ctx.parseFloatPayload(p, [], cfg.payloadOnOffJsonPath);
         if (raw !== null && !isNaN(raw)) {
           const clamped = Math.max(0, Math.min(100, raw));
           const mv = Math.round(clamped * 100); // 0�10000 (Matter units)
