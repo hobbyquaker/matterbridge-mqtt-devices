@@ -10,15 +10,8 @@ export const colorTemperatureSwitchDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCurrentLevel', 'payloadCurrentLevelJsonPath', 'topicColor', 'payloadColorJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain', 'brightnessMin', 'brightnessMax'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicCurrentLevel: cfg.topicCurrentLevel ?? `${baseTopic}/level`,
-      topicMoveToLevel: cfg.topicMoveToLevel ?? `${baseTopic}/level/set`,
-      topicMoveToLevelWithOnOff: cfg.topicMoveToLevelWithOnOff ?? `${baseTopic}/level-with-on-off/set`,
-      topicColor: cfg.topicColor ?? `${baseTopic}/color`,
-      topicSetColor: cfg.topicSetColor ?? `${baseTopic}/color/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -32,31 +25,37 @@ export const colorTemperatureSwitchDescriptor: DeviceDescriptor = {
     ep.createDefaultLevelControlClusterServer();
     ep.createDefaultColorControlClusterServer();
 
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
-    ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
-      const mqttBrightness = ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax);
-      if (cfg.topicMoveToLevel) ctx.publish(cfg.topicMoveToLevel, String(mqttBrightness), cfg.retain);
-    }) as AnyHandler);
-    ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
-      const mqttBrightness = ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax);
-      if (cfg.topicMoveToLevelWithOnOff) ctx.publish(cfg.topicMoveToLevelWithOnOff, String(mqttBrightness), cfg.retain);
-    }) as AnyHandler);
+    if (cfg.topicMoveToLevel) {
+      const moveTopic = cfg.topicMoveToLevel;
+      ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
+        ctx.publish(moveTopic, String(ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax)), cfg.retain);
+      }) as AnyHandler);
+    }
+    if (cfg.topicMoveToLevelWithOnOff) {
+      const moveTopic = cfg.topicMoveToLevelWithOnOff;
+      ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
+        ctx.publish(moveTopic, String(ctx.matterLevelToMqttBrightness(data.request.level, briMin, briMax)), cfg.retain);
+      }) as AnyHandler);
+    }
 
-    ctx.onCmd(ep, 'moveToHueAndSaturation', ((data: HueSatRequest) => {
-      const hue360 = Math.round((data.request.hue / 254) * 360);
-      const sat100 = Math.round((data.request.saturation / 254) * 100);
-      if (cfg.topicSetColor) ctx.publish(cfg.topicSetColor, JSON.stringify({ hue: hue360, saturation: sat100 }), cfg.retain);
-    }) as AnyHandler);
+    if (cfg.topicSetColor) {
+      const colorTopic = cfg.topicSetColor;
+      ctx.onCmd(ep, 'moveToHueAndSaturation', ((data: HueSatRequest) => {
+        const hue360 = Math.round((data.request.hue / 254) * 360);
+        const sat100 = Math.round((data.request.saturation / 254) * 100);
+        ctx.publish(colorTopic, JSON.stringify({ hue: hue360, saturation: sat100 }), cfg.retain);
+      }) as AnyHandler);
 
-    ctx.onCmd(ep, 'moveToColorTemperature', ((data: ColorTempRequest) => {
-      if (cfg.topicSetColor) ctx.publish(cfg.topicSetColor, JSON.stringify({ colorTemp: data.request.colorTemperatureMireds }), cfg.retain);
-    }) as AnyHandler);
+      ctx.onCmd(ep, 'moveToColorTemperature', ((data: ColorTempRequest) => {
+        ctx.publish(colorTopic, JSON.stringify({ colorTemp: data.request.colorTemperatureMireds }), cfg.retain);
+      }) as AnyHandler);
+    }
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {

@@ -24,15 +24,8 @@ export const heatPumpDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicLocalTemp: cfg.topicLocalTemp ?? `${baseTopic}/temperature`,
-      topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/heating-setpoint`,
-      topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/heating-setpoint/set`,
-      topicCoolingSetpoint: cfg.topicCoolingSetpoint ?? `${baseTopic}/cooling-setpoint`,
-      topicSetCoolingSetpoint: cfg.topicSetCoolingSetpoint ?? `${baseTopic}/cooling-setpoint/set`,
-      topicPower: cfg.topicPower ?? `${baseTopic}/power`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ep = new MatterbridgeEndpoint([heatPump]);

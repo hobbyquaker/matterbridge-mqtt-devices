@@ -47,15 +47,8 @@ export const microwaveOvenDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadRunning', 'payloadStopped', 'payloadPaused'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicOperationalState: cfg.topicOperationalState ?? `${baseTopic}/operational-state`,
-      topicSetOperationalState: cfg.topicSetOperationalState ?? `${baseTopic}/operational-state/set`,
-      topicMicrowaveMode: cfg.topicMicrowaveMode ?? `${baseTopic}/mode`,
-      topicCookTime: cfg.topicCookTime ?? `${baseTopic}/cook-time`,
-      topicSelectedWattIndex: cfg.topicSelectedWattIndex ?? `${baseTopic}/watt`,
-      topicCountdownTime: cfg.topicCountdownTime ?? `${baseTopic}/countdown`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const RUNNING = cfg.payloadRunning ?? 'running';
@@ -71,18 +64,13 @@ export const microwaveOvenDescriptor: DeviceDescriptor = {
 
     // ── OperationalState commands (Matter controller → MQTT) ─────────────────
 
-    ctx.onCmd(ep, 'OperationalState.start', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.stop', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, STOPPED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.pause', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, PAUSED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.resume', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
+    if (cfg.topicSetOperationalState) {
+      const opTopic = cfg.topicSetOperationalState;
+      ctx.onCmd(ep, 'OperationalState.start', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.stop', () => ctx.publish(opTopic, STOPPED, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.pause', () => ctx.publish(opTopic, PAUSED, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.resume', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+    }
 
     // ── MQTT → Matter: operational state ────────────────────────────────────
 

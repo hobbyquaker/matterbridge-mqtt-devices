@@ -10,11 +10,8 @@ export const irrigationSystemDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicOpenLevel', 'payloadOpenLevelJsonPath', 'topicFlow', 'payloadFlowJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -26,12 +23,11 @@ export const irrigationSystemDescriptor: DeviceDescriptor = {
     ep.createDefaultValveConfigurationAndControlClusterServer();
     ep.createDefaultFlowMeasurementClusterServer();
 
-    ctx.onCmd(ep, 'open', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'close', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'open', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'close', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {

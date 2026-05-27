@@ -10,8 +10,8 @@ export const waterValveDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicOpenLevel', 'payloadOpenLevelJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return { topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set` };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const OPEN = cfg.payloadOn ?? 'ON';
@@ -22,12 +22,11 @@ export const waterValveDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultValveConfigurationAndControlClusterServer();
 
-    ctx.onCmd(ep, 'open', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OPEN, cfg.retain);
-    });
-    ctx.onCmd(ep, 'close', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, CLOSE, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'open', () => ctx.publish(setTopic, OPEN, cfg.retain));
+      ctx.onCmd(ep, 'close', () => ctx.publish(setTopic, CLOSE, cfg.retain));
+    }
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {

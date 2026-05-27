@@ -10,12 +10,8 @@ export const fanDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicSpeed', 'payloadSpeedJsonPath', 'topicFanMode', 'payloadFanModeJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'speedMin', 'speedMax', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSpeed: cfg.topicSpeed ?? `${baseTopic}/speed`,
-      topicSetSpeed: cfg.topicSetSpeed ?? `${baseTopic}/speed/set`,
-      topicSetSpeedStep: cfg.topicSetSpeedStep ?? `${baseTopic}/speed/step`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const SPD_MIN = cfg.speedMin ?? 0;

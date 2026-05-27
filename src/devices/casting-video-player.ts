@@ -21,11 +21,8 @@ export const castingVideoPlayerDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicPlaybackState', 'payloadPlaybackJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -39,12 +36,11 @@ export const castingVideoPlayerDescriptor: DeviceDescriptor = {
     ep.behaviors.require(MatterbridgeKeypadInputServer, {});
     ep.behaviors.require(MatterbridgeContentLauncherServer, {});
 
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
     ctx.onCmd(ep, 'MediaPlayback.play', () => {
       if (cfg.topicSetPlaybackCmd) ctx.publish(cfg.topicSetPlaybackCmd, 'play', cfg.retain);

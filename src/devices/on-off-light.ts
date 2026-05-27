@@ -10,8 +10,8 @@ export const onOffLightDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return { topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set` };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -22,16 +22,11 @@ export const onOffLightDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();
 
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
-    ctx.onCmd(ep, 'toggle', () => {
-      const cur = (ctx.getAttr(ep, CID.OnOff, 'onOff') as boolean) ?? false;
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, cur ? OFF : ON, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {

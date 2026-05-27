@@ -13,8 +13,8 @@ export const doorLockDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLockState', 'payloadLockStateJsonPath', 'topicDoorState', 'payloadDoorStateJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadLocked', 'payloadUnlocked', 'payloadNotFullyLocked', 'payloadDoorOpen', 'payloadDoorClosed', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return { topicSetLockState: cfg.topicSetLockState ?? `${baseTopic}/set` };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const LOCKED = cfg.payloadLocked ?? 'LOCK';
@@ -28,15 +28,12 @@ export const doorLockDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultDoorLockClusterServer();
 
-    ctx.onCmd(ep, 'lockDoor', () => {
-      if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, LOCKED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'unlockDoor', () => {
-      if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, UNLOCKED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'unlockWithTimeout', () => {
-      if (cfg.topicSetLockState) ctx.publish(cfg.topicSetLockState, UNLOCKED, cfg.retain);
-    });
+    if (cfg.topicSetLockState) {
+      const lockTopic = cfg.topicSetLockState;
+      ctx.onCmd(ep, 'lockDoor', () => ctx.publish(lockTopic, LOCKED, cfg.retain));
+      ctx.onCmd(ep, 'unlockDoor', () => ctx.publish(lockTopic, UNLOCKED, cfg.retain));
+      ctx.onCmd(ep, 'unlockWithTimeout', () => ctx.publish(lockTopic, UNLOCKED, cfg.retain));
+    }
 
     if (cfg.topicLockState) {
       ctx.subscribe(cfg.topicLockState, (p) => {

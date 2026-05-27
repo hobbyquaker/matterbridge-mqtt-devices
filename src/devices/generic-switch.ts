@@ -7,7 +7,16 @@ export const genericSwitchDescriptor: DeviceDescriptor = {
   type: 'generic-switch',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAction', 'payloadActionJsonPath', 'topicActionPress', 'topicActionDouble', 'topicActionLong', 'topicActionInitialPress', 'topicActionLongRelease'],
+    subscribe: [
+      ...COMMON_SUBSCRIBE_KEYS,
+      'topicAction',
+      'payloadActionJsonPath',
+      'topicActionPress',
+      'topicActionDouble',
+      'topicActionLong',
+      'topicActionInitialPress',
+      'topicActionLongRelease',
+    ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadPress', 'payloadDouble', 'payloadLong', 'payloadInitialPress', 'payloadLongRelease'],
   },
   applyDefaults(_cfg, _baseTopic) {

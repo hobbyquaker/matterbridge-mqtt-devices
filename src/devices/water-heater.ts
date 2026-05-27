@@ -7,15 +7,23 @@ export const waterHeaterDescriptor: DeviceDescriptor = {
   type: 'water-heater',
   editableKeys: {
     publish: ['topicSetTargetTemp'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicLocalTemp', 'payloadLocalTempJsonPath', 'topicTargetTemp', 'payloadTargetTempJsonPath', 'topicPower', 'payloadPowerJsonPath', 'topicVoltage', 'payloadVoltageJsonPath', 'topicCurrent', 'payloadCurrentJsonPath'],
+    subscribe: [
+      ...COMMON_SUBSCRIBE_KEYS,
+      'topicLocalTemp',
+      'payloadLocalTempJsonPath',
+      'topicTargetTemp',
+      'payloadTargetTempJsonPath',
+      'topicPower',
+      'payloadPowerJsonPath',
+      'topicVoltage',
+      'payloadVoltageJsonPath',
+      'topicCurrent',
+      'payloadCurrentJsonPath',
+    ],
     settings: [...COMMON_SETTINGS_KEYS, 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicLocalTemp: cfg.topicLocalTemp ?? `${baseTopic}/temperature`,
-      topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/target`,
-      topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/target/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ep = new MatterbridgeEndpoint([waterHeater]);

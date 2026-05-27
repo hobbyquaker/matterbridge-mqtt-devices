@@ -36,13 +36,8 @@ export const cooktopDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'payloadRunning', 'payloadStopped', 'payloadPaused', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,
-      topicOperationalState: cfg.topicOperationalState ?? `${baseTopic}/operational-state`,
-      topicSetOperationalState: cfg.topicSetOperationalState ?? `${baseTopic}/operational-state/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -57,29 +52,19 @@ export const cooktopDescriptor: DeviceDescriptor = {
     ep.createDefaultOnOffClusterServer();
     ep.createDefaultOperationalStateClusterServer();
 
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
-    ctx.onCmd(ep, 'toggle', () => {
-      const cur = (ctx.getAttr(ep, CID.OnOff, 'onOff') as boolean) ?? false;
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, cur ? OFF : ON, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
-    ctx.onCmd(ep, 'OperationalState.start', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.stop', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, STOPPED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.pause', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, PAUSED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.resume', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
+    if (cfg.topicSetOperationalState) {
+      const opTopic = cfg.topicSetOperationalState;
+      ctx.onCmd(ep, 'OperationalState.start', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.stop', () => ctx.publish(opTopic, STOPPED, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.pause', () => ctx.publish(opTopic, PAUSED, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.resume', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+    }
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {

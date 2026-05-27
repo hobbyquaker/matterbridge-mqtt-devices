@@ -31,13 +31,8 @@ export const speakerDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicVolume', 'payloadVolumeJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicVolume: cfg.topicVolume ?? `${baseTopic}/volume`,
-      topicSetVolume: cfg.topicSetVolume ?? `${baseTopic}/volume/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -51,22 +46,22 @@ export const speakerDescriptor: DeviceDescriptor = {
     ep.createLevelControlClusterServer(128); // default volume 50%
 
     // on = unmute, off = mute
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
     // Matter controller changes volume via moveToLevel
-    ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
-      const pct = levelToVolumePct(data.request.level);
-      if (cfg.topicSetVolume) ctx.publish(cfg.topicSetVolume, String(pct), cfg.retain);
-    }) as AnyHandler);
-    ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
-      const pct = levelToVolumePct(data.request.level);
-      if (cfg.topicSetVolume) ctx.publish(cfg.topicSetVolume, String(pct), cfg.retain);
-    }) as AnyHandler);
+    if (cfg.topicSetVolume) {
+      const volTopic = cfg.topicSetVolume;
+      ctx.onCmd(ep, 'moveToLevel', ((data: LevelRequest) => {
+        ctx.publish(volTopic, String(levelToVolumePct(data.request.level)), cfg.retain);
+      }) as AnyHandler);
+      ctx.onCmd(ep, 'moveToLevelWithOnOff', ((data: LevelRequest) => {
+        ctx.publish(volTopic, String(levelToVolumePct(data.request.level)), cfg.retain);
+      }) as AnyHandler);
+    }
 
     if (cfg.topicOnOff) {
       ctx.subscribe(cfg.topicOnOff, (p) => {

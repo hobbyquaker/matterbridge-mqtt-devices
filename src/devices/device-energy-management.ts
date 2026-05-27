@@ -10,10 +10,8 @@ export const deviceEnergyManagementDescriptor: DeviceDescriptor = {
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOperationalState', 'payloadOperationalStateJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicOperationalState: cfg.topicOperationalState ?? `${baseTopic}/state`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ep = new MatterbridgeEndpoint([deviceEnergyManagement]);

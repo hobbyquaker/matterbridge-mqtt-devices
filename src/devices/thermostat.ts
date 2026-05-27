@@ -42,11 +42,8 @@ export const thermostatDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/target`,
-      topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/target/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ep = new MatterbridgeEndpoint([thermostatDeviceType as import('matterbridge').DeviceTypeDefinition, powerSource]);

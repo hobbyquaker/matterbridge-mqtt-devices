@@ -20,13 +20,8 @@ export const solarPowerDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicPower: cfg.topicPower ?? `${baseTopic}/power`,
-      topicVoltage: cfg.topicVoltage ?? `${baseTopic}/voltage`,
-      topicCurrent: cfg.topicCurrent ?? `${baseTopic}/current`,
-      topicEnergy: cfg.topicEnergy ?? `${baseTopic}/energy`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ep = new MatterbridgeEndpoint([solarPower]);

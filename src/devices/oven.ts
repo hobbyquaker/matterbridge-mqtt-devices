@@ -48,17 +48,8 @@ export const ovenDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadRunning', 'payloadStopped', 'payloadPaused'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicOperationalState: cfg.topicOperationalState ?? `${baseTopic}/operational-state`,
-      topicSetOperationalState: cfg.topicSetOperationalState ?? `${baseTopic}/operational-state/set`,
-      topicOvenMode: cfg.topicOvenMode ?? `${baseTopic}/mode`,
-      topicSetOvenMode: cfg.topicSetOvenMode ?? `${baseTopic}/mode/set`,
-      topicTemperature: cfg.topicTemperature ?? `${baseTopic}/temperature`,
-      topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/temperature/target`,
-      topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/temperature/target/set`,
-      topicCountdownTime: cfg.topicCountdownTime ?? `${baseTopic}/countdown`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const RUNNING = cfg.payloadRunning ?? 'running';
@@ -78,18 +69,13 @@ export const ovenDescriptor: DeviceDescriptor = {
 
     // ── OvenCavityOperationalState commands (Matter controller → MQTT) ────────
 
-    ctx.onCmd(cabinet, 'OvenCavityOperationalState.start', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
-    ctx.onCmd(cabinet, 'OvenCavityOperationalState.stop', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, STOPPED, cfg.retain);
-    });
-    ctx.onCmd(cabinet, 'OvenCavityOperationalState.pause', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, PAUSED, cfg.retain);
-    });
-    ctx.onCmd(cabinet, 'OvenCavityOperationalState.resume', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
+    if (cfg.topicSetOperationalState) {
+      const opTopic = cfg.topicSetOperationalState;
+      ctx.onCmd(cabinet, 'OvenCavityOperationalState.start', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+      ctx.onCmd(cabinet, 'OvenCavityOperationalState.stop', () => ctx.publish(opTopic, STOPPED, cfg.retain));
+      ctx.onCmd(cabinet, 'OvenCavityOperationalState.pause', () => ctx.publish(opTopic, PAUSED, cfg.retain));
+      ctx.onCmd(cabinet, 'OvenCavityOperationalState.resume', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+    }
 
     // ── OvenMode command (Matter controller → MQTT) ──────────────────────────
 

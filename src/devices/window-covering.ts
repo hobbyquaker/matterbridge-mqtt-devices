@@ -39,14 +39,8 @@ export const windowCoveringDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOpen', 'payloadClosed', 'payloadStop', 'retain', 'positionMin', 'positionMax', 'tiltMin', 'tiltMax'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSetCoverState: cfg.topicSetCoverState ?? `${baseTopic}/set`,
-      topicPosition: cfg.topicPosition ?? `${baseTopic}/position`,
-      topicSetPosition: cfg.topicSetPosition ?? `${baseTopic}/position/set`,
-      topicTilt: cfg.topicTilt ?? `${baseTopic}/tilt`,
-      topicSetTilt: cfg.topicSetTilt ?? `${baseTopic}/tilt/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const OPEN = cfg.payloadOpen ?? 'OPEN';

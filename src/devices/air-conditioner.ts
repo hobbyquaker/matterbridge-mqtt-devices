@@ -26,17 +26,8 @@ export const airConditionerDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicLocalTemp: cfg.topicLocalTemp ?? `${baseTopic}/temperature`,
-      topicTargetTemp: cfg.topicTargetTemp ?? `${baseTopic}/heating-setpoint`,
-      topicSetTargetTemp: cfg.topicSetTargetTemp ?? `${baseTopic}/heating-setpoint/set`,
-      topicCoolingSetpoint: cfg.topicCoolingSetpoint ?? `${baseTopic}/cooling-setpoint`,
-      topicSetCoolingSetpoint: cfg.topicSetCoolingSetpoint ?? `${baseTopic}/cooling-setpoint/set`,
-      topicSpeed: cfg.topicSpeed ?? `${baseTopic}/speed`,
-      topicSetSpeed: cfg.topicSetSpeed ?? `${baseTopic}/speed/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -49,16 +40,11 @@ export const airConditionerDescriptor: DeviceDescriptor = {
     ep.createDefaultThermostatClusterServer(2000, 2100, 2600);
     ep.createDefaultFanControlClusterServer();
 
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, OFF, cfg.retain);
-    });
-    ctx.onCmd(ep, 'toggle', () => {
-      const cur = (ctx.getAttr(ep, CID.OnOff, 'onOff') as boolean) ?? false;
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, cur ? OFF : ON, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, OFF, cfg.retain));
+    }
 
     void ep.subscribeAttribute(
       'Thermostat',

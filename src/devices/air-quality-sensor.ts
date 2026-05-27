@@ -22,7 +22,17 @@ export const airQualitySensorDescriptor: DeviceDescriptor = {
   type: 'air-quality-sensor',
   editableKeys: {
     publish: [],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicAirQuality', 'payloadAirQualityJsonPath', 'topicTvoc', 'payloadTvocJsonPath', 'topicCo2', 'payloadCo2JsonPath', 'topicPm25', 'payloadPm25JsonPath'],
+    subscribe: [
+      ...COMMON_SUBSCRIBE_KEYS,
+      'topicAirQuality',
+      'payloadAirQualityJsonPath',
+      'topicTvoc',
+      'payloadTvocJsonPath',
+      'topicCo2',
+      'payloadCo2JsonPath',
+      'topicPm25',
+      'payloadPm25JsonPath',
+    ],
     settings: [...COMMON_SETTINGS_KEYS],
   },
   applyDefaults(_cfg, _baseTopic) {

@@ -51,17 +51,8 @@ export const dishwasherDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'payloadRunning', 'payloadStopped', 'payloadPaused'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicOnOff: cfg.topicOnOff ?? `${baseTopic}/state`,
-      topicSetOnOff: cfg.topicSetOnOff ?? `${baseTopic}/set`,
-      topicOperationalState: cfg.topicOperationalState ?? `${baseTopic}/operational-state`,
-      topicSetOperationalState: cfg.topicSetOperationalState ?? `${baseTopic}/operational-state/set`,
-      topicDishwasherMode: cfg.topicDishwasherMode ?? `${baseTopic}/mode`,
-      topicSetDishwasherMode: cfg.topicSetDishwasherMode ?? `${baseTopic}/mode/set`,
-      topicTemperatureLevel: cfg.topicTemperatureLevel ?? `${baseTopic}/temperature`,
-      topicCountdownTime: cfg.topicCountdownTime ?? `${baseTopic}/countdown`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const PAYLOAD_ON = cfg.payloadOn ?? 'ON';
@@ -80,27 +71,21 @@ export const dishwasherDescriptor: DeviceDescriptor = {
 
     // ── OperationalState commands (Matter controller → MQTT) ─────────────────
 
-    ctx.onCmd(ep, 'OperationalState.start', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.stop', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, STOPPED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.pause', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, PAUSED, cfg.retain);
-    });
-    ctx.onCmd(ep, 'OperationalState.resume', () => {
-      if (cfg.topicSetOperationalState) ctx.publish(cfg.topicSetOperationalState, RUNNING, cfg.retain);
-    });
+    if (cfg.topicSetOperationalState) {
+      const opTopic = cfg.topicSetOperationalState;
+      ctx.onCmd(ep, 'OperationalState.start', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.stop', () => ctx.publish(opTopic, STOPPED, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.pause', () => ctx.publish(opTopic, PAUSED, cfg.retain));
+      ctx.onCmd(ep, 'OperationalState.resume', () => ctx.publish(opTopic, RUNNING, cfg.retain));
+    }
 
     // ── OnOff commands (Matter controller → MQTT) ────────────────────────────
 
-    ctx.onCmd(ep, 'on', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, PAYLOAD_ON, cfg.retain);
-    });
-    ctx.onCmd(ep, 'off', () => {
-      if (cfg.topicSetOnOff) ctx.publish(cfg.topicSetOnOff, PAYLOAD_OFF, cfg.retain);
-    });
+    if (cfg.topicSetOnOff) {
+      const setTopic = cfg.topicSetOnOff;
+      ctx.onCmd(ep, 'on', () => ctx.publish(setTopic, PAYLOAD_ON, cfg.retain));
+      ctx.onCmd(ep, 'off', () => ctx.publish(setTopic, PAYLOAD_OFF, cfg.retain));
+    }
 
     // ── DishwasherMode command (Matter controller → MQTT) ────────────────────
 

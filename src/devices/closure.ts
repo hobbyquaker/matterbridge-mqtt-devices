@@ -27,13 +27,8 @@ export const closureDescriptor: DeviceDescriptor = {
     ],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOpen', 'payloadClosed', 'payloadStop', 'retain', 'positionMin', 'positionMax', 'speedMin', 'speedMax'],
   },
-  applyDefaults(cfg, baseTopic) {
-    return {
-      topicSetClosureState: cfg.topicSetClosureState ?? `${baseTopic}/set`,
-      topicClosureState: cfg.topicClosureState ?? `${baseTopic}/state`,
-      topicPosition: cfg.topicPosition ?? `${baseTopic}/position`,
-      topicSetPosition: cfg.topicSetPosition ?? `${baseTopic}/position/set`,
-    };
+  applyDefaults(_cfg, _baseTopic) {
+    return {};
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const OPEN = cfg.payloadOpen ?? 'OPEN';
