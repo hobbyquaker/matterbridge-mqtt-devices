@@ -1026,13 +1026,6 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       }
     }
 
-    // Power source
-    if (cfg.powerSource) {
-      const clusterIdBridgedInfo = 0x0039;
-      const powerSourceValue = cfg.powerSource === 'battery' ? 3 : 1; // 3=battery, 1=mains
-      this.setAttr(ep, clusterIdBridgedInfo, 'powerSource', powerSourceValue);
-      this.log.info(`[${cfg.name}] power source: ${cfg.powerSource}`);
-    }
   }
 
   // ── Device factory ─────────────────────────────────────────────────────────
