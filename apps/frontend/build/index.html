@@ -324,10 +324,12 @@
         payload[key] = (key === 'retain' || key === 'batteryValueBased') ? input.checked : input.value;
       });
       try {
-        const resp = await fetch('api/config', {
+        // Matterbridge does not apply express.json() to plugin API routes so
+        // req.body is undefined in onFetch. Send everything as query params.
+        const searchParams = new URLSearchParams();
+        Object.entries(payload).forEach(([k, v]) => searchParams.set(k, v == null ? '' : String(v)));
+        const resp = await fetch('api/config?' + searchParams.toString(), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
         });
         const result = await resp.json();
         if (!result.ok) {
