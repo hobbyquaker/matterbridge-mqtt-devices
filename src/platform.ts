@@ -195,7 +195,11 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   private findConfiguredDeviceById(deviceId: string): MqttDeviceConfig | undefined {
     const devices = (this.config['devices'] as MqttDeviceConfig[]) ?? [];
-    return devices.find((d) => d.id === deviceId);
+    for (let i = 0; i < devices.length; i++) {
+      const effective = this.applyDeviceDefaults(devices[i], i);
+      if (effective.id === deviceId) return effective;
+    }
+    return undefined;
   }
 
   private getEditableKeyGroups(type?: string): EditableKeyGroups {
@@ -211,11 +215,18 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   private applyAdvancedValues(deviceId: string, payload: Record<string, unknown>): boolean {
     const devices = (this.config['devices'] as MqttDeviceConfig[]) ?? [];
-    const index = devices.findIndex((d) => d.id === deviceId);
+    let index = -1;
+    for (let i = 0; i < devices.length; i++) {
+      if (this.applyDeviceDefaults(devices[i], i).id === deviceId) {
+        index = i;
+        break;
+      }
+    }
     if (index === -1) return false;
 
     const cfg = devices[index];
-    const groups = this.getEditableKeyGroups(cfg.type);
+    const effectiveType = this.applyDeviceDefaults(cfg, index).type;
+    const groups = this.getEditableKeyGroups(effectiveType);
     const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
 
     for (const key of allKeys) {
