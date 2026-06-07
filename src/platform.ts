@@ -1,11 +1,10 @@
-/**
+﻿/**
  * matterbridge-mqtt-devices — MqttPlatform
  * Compatible Matterbridge v3.x
  */
 
 // ── Matterbridge ──────────────────────────────────────────────────────────────
 import { promises as fs } from 'node:fs';
-import { type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -26,9 +25,6 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   private mqttClient: MqttClient | undefined;
   private topicHandlers = new Map<string, Array<(p: string) => void>>();
   private endpointMap = new Map<string, MatterbridgeEndpoint>();
-  private editorAttachedServer: Server | undefined;
-  private editorRequestHandler: ((req: IncomingMessage, res: ServerResponse) => void) | undefined;
-
   constructor(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
     this.log.logName = 'MqttDevices';
@@ -41,7 +37,6 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   override async onStart(reason?: string): Promise<void> {
     this.log.info(`onStart: ${reason ?? '-'}`);
     await this.connectMqtt();
-    this.attachDeviceEditor();
 
     // Ensure whiteList and blackList are defined so the Matterbridge UI
     // can show the enable/disable checkbox for each device.
@@ -79,12 +74,6 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     if (this.mqttClient?.connected) {
       await this.mqttClient.endAsync();
       this.log.info('MQTT disconnected');
-    }
-    if (this.editorRequestHandler && this.editorAttachedServer) {
-      this.editorAttachedServer.removeListener('request', this.editorRequestHandler);
-      this.editorAttachedServer = undefined;
-      this.editorRequestHandler = undefined;
-      this.log.info('Device editor routes detached from Matterbridge HTTP server');
     }
   }
 
@@ -159,719 +148,101 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     this.log.debug(`→ [${topic}] ${payload}`);
   }
 
-  // ── Device editor web UI ──────────────────────────────────────────────────
+  // ── HTTP API ─────────────────────────────────────────────────────────────
 
-  private attachDeviceEditor(): void {
-    if (this.editorAttachedServer) return;
+  override async onFetch(method: string, path?: string, query?: Record<string, unknown>, body?: unknown): Promise<unknown> {
+    if (path !== 'config') return undefined;
 
-    // ── TECHNICAL DEBT ────────────────────────────────────────────────────────
-    // Matterbridge does not currently expose a plugin API for registering custom
-    // HTTP routes. As a workaround we locate the Express/HTTP server by scanning
-    // Node.js internal active handles (_getActiveHandles) and prepend our own
-    // listener directly on the server's 'request' event.
-    //
-    // This is fragile: it relies on a private Node.js API (_getActiveHandles),
-    // on implementation details of how Matterbridge attaches Express, and on the
-    // assumption that our listener runs before Express's catch-all static handler.
-    //
-    // Remove this workaround once upstream support is available:
-    //   https://github.com/Luligu/matterbridge/issues/561
-    // ─────────────────────────────────────────────────────────────────────────
+    if (method === 'GET') {
+      const deviceId = String(query?.['device'] ?? '');
+      const cfg = this.findConfiguredDeviceById(deviceId);
+      if (!cfg) return undefined;
 
-    // this.matterbridge is getPlatformMatterbridge() — a plain data object, NOT the
-    // Matterbridge class instance. frontend/httpServer are not accessible through it.
-    // Instead, locate Matterbridge's HTTP frontend server by scanning active Node.js handles.
-    // The frontend HTTP server is the only listening server with 'request' event listeners
-    // (Express is attached to it); raw TCP/Matter servers have none.
-    const proc = process as unknown as { _getActiveHandles?: () => unknown[] };
-    const handles: unknown[] = proc._getActiveHandles?.() ?? [];
-    const httpServer = handles.find((h): h is Server => {
-      if (h === null || typeof h !== 'object') return false;
-      const handle = h as Record<string, unknown>;
-      return (
-        handle['listening'] === true &&
-        typeof handle['prependListener'] === 'function' &&
-        typeof handle['listenerCount'] === 'function' &&
-        (handle as unknown as { listenerCount: (e: string) => number }).listenerCount('request') > 0
-      );
-    });
-
-    if (!httpServer) {
-      this.log.warn('Matterbridge HTTP server not found; device editor routes not attached');
-      return;
-    }
-
-    const handler = (req: IncomingMessage, res: ServerResponse) => {
-      if (res.writableEnded || !req.url) return;
-      const pathname = new URL(req.url, 'http://127.0.0.1').pathname;
-      if (pathname !== '/matterbridge-mqtt-config' && pathname !== '/api/matterbridge-mqtt-config') return;
-      // Express fires its own request listeners after our prependListener returns.
-      // Patch setHeader/write/end on this response instance so that Express cannot
-      // inject headers or a body into a response we have already claimed.
-      const origSetHeader = res.setHeader.bind(res);
-      const origWrite = res.write.bind(res) as typeof res.write;
-      const origEnd = res.end.bind(res) as typeof res.end;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (res as any).setHeader = (name: string, value: string | number | readonly string[]) => {
-        if (res.headersSent) return res;
-        return origSetHeader(name, value);
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (res as any).write = (...args: Parameters<typeof res.write>) => {
-        if (res.writableEnded) return true;
-        return origWrite(...args);
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (res as any).end = (...args: Parameters<typeof res.end>) => {
-        if (res.writableEnded) return res;
-        return origEnd(...args);
-      };
-      void this.handleDeviceEditorRequest(req, res);
-    };
-
-    try {
-      httpServer.prependListener('request', handler);
-      this.editorAttachedServer = httpServer;
-      this.editorRequestHandler = handler;
-      this.log.info('Device editor routes attached to Matterbridge HTTP server');
-    } catch (error) {
-      this.log.warn(`Failed to attach device editor routes: ${error}`);
-    }
-  }
-
-  private async handleDeviceEditorRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    if (!req.url) {
-      this.sendEditorText(res, 400, 'Bad Request');
-      return;
-    }
-
-    const url = new URL(req.url, 'http://127.0.0.1');
-
-    if (req.method === 'GET' && url.pathname === '/matterbridge-mqtt-config') {
-      const deviceId = String(url.searchParams.get('device') ?? '');
-      const html = this.renderDeviceEditorHtml(deviceId);
-      if (!html) {
-        this.sendEditorText(res, 404, `Unknown device: ${deviceId}`);
-        return;
+      const descriptor = findDescriptor(cfg.type);
+      const componentDefs: readonly ComposedComponentDef[] | null = descriptor?.componentDefs ?? null;
+      const groups = this.getEditableKeyGroups(cfg.type);
+      const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
+      const values: Record<string, unknown> = {};
+      for (const key of allKeys) values[key] = (cfg as unknown as Record<string, unknown>)[key] ?? '';
+      values['retain'] = cfg.retain === true;
+      values['batteryValueBased'] = cfg.batteryValueBased === true;
+      if (Array.isArray(values['components'])) {
+        values['components'] = (values['components'] as string[]).join(',');
       }
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(html);
-      return;
+      const title = `${cfg.name} (${cfg.type ?? 'unknown'})`;
+      return { title, deviceId, values, groups, componentDefs };
     }
 
-    if (req.method === 'GET' && url.pathname === '/api/matterbridge-mqtt-config') {
-      const payload: Record<string, unknown> = {};
-      for (const [k, v] of url.searchParams.entries()) payload[k] = v;
-
-      const deviceId = String(payload['deviceId'] ?? '');
-      if (!deviceId) {
-        this.sendEditorJson(res, 400, { ok: false, error: 'deviceId is required' });
-        return;
-      }
-
+    if (method === 'POST') {
+      const payload = body as Record<string, unknown>;
+      const deviceId = String(payload?.['deviceId'] ?? '');
+      if (!deviceId) return { ok: false, error: 'deviceId is required' };
       const updated = this.applyAdvancedValues(deviceId, payload);
-      if (!updated) {
-        this.sendEditorJson(res, 404, { ok: false, error: `Unknown device: ${deviceId}` });
-        return;
-      }
-
-      // End the response synchronously so Express cannot race in and write an
-      // HTML body into the open socket between writeHead and our async res.end.
-      // The in-memory config is already updated by applyAdvancedValues; persist
-      // runs after the response is closed and logs any failure.
-      this.sendEditorJson(res, 200, { ok: true });
-      void this.persistCurrentConfig().catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
-        this.log.error(`Failed to persist device config: ${message}`);
-      });
-      return;
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/matterbridge-mqtt-config') {
-      // Claim the response before the first await (readRequestBody) so Express
-      // cannot race in and serve index.html while the body is being read.
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-
-      const body = await this.readRequestBody(req);
-      let payload: Record<string, unknown>;
+      if (!updated) return undefined;
       try {
-        payload = JSON.parse(body) as Record<string, unknown>;
-      } catch {
-        res.end(JSON.stringify({ ok: false, error: 'Invalid JSON body' }));
-        return;
-      }
-
-      const deviceId = String(payload['deviceId'] ?? '');
-      if (!deviceId) {
-        res.end(JSON.stringify({ ok: false, error: 'deviceId is required' }));
-        return;
-      }
-
-      const updated = this.applyAdvancedValues(deviceId, payload);
-      if (!updated) {
-        res.end(JSON.stringify({ ok: false, error: `Unknown device: ${deviceId}` }));
-        return;
-      }
-
-      try {
-        await this.persistCurrentConfig();
-        res.end(JSON.stringify({ ok: true }));
+        this.persistCurrentConfig();
+        return { ok: true };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        res.end(JSON.stringify({ ok: false, error: `Save failed: ${message}` }));
+        return { ok: false, error: `Save failed: ${message}` };
       }
-      return;
     }
 
-    this.sendEditorText(res, 404, 'Not Found');
-  }
-
-  private async readRequestBody(req: IncomingMessage): Promise<string> {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks).toString('utf8');
-  }
-
-  private sendEditorText(res: ServerResponse, status: number, text: string): void {
-    res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end(text);
-  }
-
-  private sendEditorJson(res: ServerResponse, status: number, data: Record<string, unknown>): void {
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify(data));
-  }
-
-  private findConfiguredDeviceById(deviceId: string): MqttDeviceConfig | undefined {
-    const devices = (this.config['devices'] as MqttDeviceConfig[] | undefined) ?? [];
-    for (let i = 0; i < devices.length; i++) {
-      const cfg = this.applyDeviceDefaults(devices[i], i);
-      if (cfg.id === deviceId) return devices[i];
-    }
     return undefined;
   }
 
-  private getEditableKeys(): readonly EditableDeviceKey[] {
-    return ALL_EDITABLE_KEYS;
+  // ── Config helpers (used by onFetch) ──────────────────────────────────────
+
+  private findConfiguredDeviceById(deviceId: string): MqttDeviceConfig | undefined {
+    const devices = (this.config['devices'] as MqttDeviceConfig[]) ?? [];
+    return devices.find((d) => d.id === deviceId);
   }
 
-  private getEditableKeyGroups(deviceType: string | undefined): EditableKeyGroups {
-    const d = findDescriptor(deviceType);
-    if (d) return d.editableKeys;
-    return { publish: [], subscribe: [], settings: ALL_EDITABLE_KEYS };
+  private getEditableKeyGroups(type?: string): EditableKeyGroups {
+    const descriptor = type ? findDescriptor(type) : undefined;
+    return (
+      descriptor?.editableKeys ?? {
+        publish: [],
+        subscribe: [],
+        settings: ALL_EDITABLE_KEYS as EditableDeviceKey[],
+      }
+    );
   }
 
-  private isNumberKey(key: EditableDeviceKey): boolean {
-    return (NUMBER_KEYS as readonly string[]).includes(key);
-  }
+  private applyAdvancedValues(deviceId: string, payload: Record<string, unknown>): boolean {
+    const devices = (this.config['devices'] as MqttDeviceConfig[]) ?? [];
+    const index = devices.findIndex((d) => d.id === deviceId);
+    if (index === -1) return false;
 
-  private applyAdvancedValues(deviceId: string, data: Record<string, unknown>): boolean {
-    const cfg = this.findConfiguredDeviceById(deviceId);
-    if (!cfg) return false;
+    const cfg = devices[index];
+    const groups = this.getEditableKeyGroups(cfg.type);
+    const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
 
-    for (const key of this.getEditableKeys()) {
-      if (!(key in data)) continue;
-      const incoming = data[key];
-
+    for (const key of allKeys) {
+      if (!(key in payload)) continue;
+      const raw = payload[key];
       if (key === 'retain' || key === 'batteryValueBased') {
-        if (incoming === true || incoming === 'true') (cfg as unknown as Record<string, unknown>)[key] = true;
-        else if (incoming === false || incoming === 'false') (cfg as unknown as Record<string, unknown>)[key] = false;
-        else Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
-        continue;
-      }
-
-      if (key === 'powerSource') {
-        const val = String(incoming).trim().toLowerCase();
-        if (val === 'battery' || val === 'mains') {
-          (cfg as unknown as Record<string, unknown>)[key] = val;
-        } else {
-          Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
-        }
-        continue;
-      }
-
-      if (key === 'components') {
-        const raw = incoming === undefined || incoming === null ? '' : String(incoming).trim();
-        const ids = raw
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-        if (ids.length > 0) (cfg as unknown as Record<string, unknown>)[key] = ids;
-        else Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
-        continue;
-      }
-
-      if (this.isNumberKey(key)) {
-        const raw = incoming === undefined || incoming === null ? '' : String(incoming).trim();
-        if (raw === '') {
-          Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
-          continue;
-        }
+        (cfg as unknown as Record<string, unknown>)[key] = raw === true || raw === 'true';
+      } else if ((NUMBER_KEYS as readonly string[]).includes(key)) {
         const n = Number(raw);
-        if (Number.isFinite(n)) {
-          (cfg as unknown as Record<string, unknown>)[key] = n;
-        }
-        continue;
+        (cfg as unknown as Record<string, unknown>)[key] = Number.isFinite(n) ? n : undefined;
+      } else if (key === 'components') {
+        const str = String(raw ?? '').trim();
+        (cfg as unknown as Record<string, unknown>)[key] = str
+          ? str
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+      } else {
+        (cfg as unknown as Record<string, unknown>)[key] = typeof raw === 'string' ? raw : String(raw ?? '');
       }
-
-      const value = incoming === undefined || incoming === null ? '' : String(incoming).trim();
-      if (value === '') Reflect.deleteProperty(cfg as unknown as Record<string, unknown>, key);
-      else (cfg as unknown as Record<string, unknown>)[key] = value;
     }
-
     return true;
   }
 
-  private getConfigFilePath(): string {
-    const pluginName = String(this.config['name'] ?? 'matterbridge-mqtt-devices');
-    return path.join(os.homedir(), '.matterbridge', `${pluginName}.config.json`);
-  }
-
-  private async persistCurrentConfig(): Promise<void> {
-    const configPath = this.getConfigFilePath();
-    const existingText = await fs.readFile(configPath, 'utf8');
-    const existingConfig = JSON.parse(existingText) as Record<string, unknown>;
-    existingConfig['devices'] = this.config['devices'];
-    await fs.writeFile(configPath, `${JSON.stringify(existingConfig, null, 2)}\n`, 'utf8');
-    this.log.info(`Saved device advanced config to ${configPath}`);
-  }
-
-  private renderDeviceEditorHtml(deviceId: string): string | null {
-    const cfg = this.findConfiguredDeviceById(deviceId);
-    if (!cfg) return null;
-
-    const descriptor = findDescriptor(cfg.type);
-    const componentDefs: readonly ComposedComponentDef[] | null = descriptor?.componentDefs ?? null;
-
-    const groups = this.getEditableKeyGroups(cfg.type);
-    const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
-    const values: Record<string, unknown> = {};
-    for (const key of allKeys) values[key] = (cfg as unknown as Record<string, unknown>)[key] ?? '';
-    values['retain'] = cfg.retain === true;
-    // Normalise components to a comma-separated string for the initial JS object
-    if (Array.isArray(values['components'])) {
-      values['components'] = (values['components'] as string[]).join(',');
-    }
-
-    const title = `${cfg.name} (${cfg.type ?? 'on-off-outlet'})`;
-    const initialJson = JSON.stringify(values);
-    const componentDefsJson = JSON.stringify(componentDefs);
-
-    return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MQTT Device Editor</title>
-  <style>
-    body { font-family: Segoe UI, sans-serif; margin: 0; background: #f5f7fb; color: #1a2233; }
-    .wrap { max-width: 900px; margin: 24px auto; background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-    h1 { margin: 0 0 6px 0; font-size: 24px; }
-    p { margin: 0 0 16px 0; color: #4a5a78; }
-    .section-label { grid-column: span 2; margin: 12px 0 0; padding: 6px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8896b0; border-bottom: 1px solid #e8ecf4; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .field { display: flex; flex-direction: column; gap: 4px; }
-    .field.full { grid-column: span 2; }
-    label { font-size: 12px; color: #4a5a78; }
-    input, select { border: 1px solid #cfd6e4; border-radius: 8px; padding: 8px 10px; font-size: 14px; background: #fff; }
-    .comp-checks { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 6px 0; }
-    .comp-check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #1a2233; cursor: pointer; }
-    .comp-check input[type="checkbox"] { border: none; border-radius: 0; padding: 0; width: 16px; height: 16px; cursor: pointer; }
-    .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
-    button { border: 0; border-radius: 8px; background: #1f6feb; color: #fff; padding: 10px 14px; font-weight: 600; cursor: pointer; }
-    .status { font-size: 13px; color: #4a5a78; }
-    .hint-btn { background: none; border: none; color: #8896b0; cursor: pointer; font-size: 12px; padding: 0 0 0 4px; line-height: 1; vertical-align: middle; }
-    .hint-btn:hover { color: #1f6feb; }
-    .hint-popup { position: fixed; z-index: 9999; background: #1a2233; color: #e8ecf4; border-radius: 8px; padding: 10px 14px; font-size: 12px; max-width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,.3); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .field.full { grid-column: span 1; } .section-label { grid-column: span 1; } }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <h1>${this.escapeHtml(title)}</h1>
-    <p>Edit advanced MQTT topics and payload mapping. Save persists to plugin config. Restart plugin to apply runtime changes.</p>
-    <div class="grid" id="fields"></div>
-    <div class="grid" id="fields"></div>
-    <div class="actions">
-      <button id="saveBtn" type="button">Save</button>
-      <span class="status" id="status">Ready</span>
-    </div>
-  </div>
-  <script>
-    const deviceId = ${JSON.stringify(deviceId)};
-    const groups = ${JSON.stringify(groups)};
-    const initial = ${initialJson};
-    const componentDefs = ${componentDefsJson};
-    const fields = document.getElementById('fields');
-    const status = document.getElementById('status');
-    const saveBtn = document.getElementById('saveBtn');
-    const GROUP_LABELS = { publish: 'Publish Topics', subscribe: 'Subscribe Topics & Paths', settings: 'Settings' };
-
-    const BATTERY_KEYS = ['topicBattery','payloadBatteryJsonPath','batteryValueBased','batteryMin','batteryMax','payloadBatteryFull','payloadBatteryEmpty'];
-
-    // ── Field hints ───────────────────────────────────────────────────────────
-    const FIELD_HINTS = {
-      // ── Common availability & battery ──────────────────────────────────────
-      topicAvailability:         'Subscribe: receives device online/offline status.\\nPayload compared against payloadOnline / payloadOffline.',
-      payloadOnline:             'Payload value that means the device is online.\\nDefault: "online"',
-      payloadOffline:            'Payload value that means the device is offline.\\nDefault: "offline"',
-      topicBattery:              'Subscribe: receives battery state updates.\\nbatteryValueBased controls interpretation:\\ntrue  → numeric value in batteryMin–batteryMax range\\nfalse → payloadBatteryFull / payloadBatteryEmpty strings',
-      batteryValueBased:         'true  → expect a numeric 0–100 value (or batteryMin–batteryMax range).\\nfalse → expect payloadBatteryFull / payloadBatteryEmpty strings.',
-      batteryMin:                'Raw MQTT value mapped to 0 % (empty). Default: 0',
-      batteryMax:                'Raw MQTT value mapped to 100 % (full). Default: 100',
-      payloadBatteryFull:        'Payload that means battery is full (batteryValueBased = false).\\nDefault: "full"',
-      payloadBatteryEmpty:       'Payload that means battery is empty (batteryValueBased = false).\\nDefault: "empty"',
-      // ── Common settings ────────────────────────────────────────────────────
-      powerSource:               'Reported power source for this device.\\nOptions: battery | mains\\nDefault: not set',
-      serial:                    'Serial number override. Leave blank to auto-generate from device id.',
-      // ── On/Off ────────────────────────────────────────────────────────────
-      topicSetOnOff:             'Publish: sends on/off commands.\\nPayload: payloadOn or payloadOff value.',
-      topicOnOff:                'Subscribe: receives current on/off state.\\nPayload compared against payloadOn / payloadOff.',
-      payloadOn:                 'Payload string for "on" state.\\nDefault: "ON"',
-      payloadOff:                'Payload string for "off" state.\\nDefault: "OFF"',
-      retain:                    'true → publish commands with the MQTT retain flag.\\nDefault: false',
-      // ── Brightness / Level ─────────────────────────────────────────────────
-      topicCurrentLevel:         'Subscribe: receives current brightness level.',
-      topicMoveToLevel:          'Publish: sends brightness-set commands (level only).',
-      topicMoveToLevelWithOnOff: 'Publish: sends brightness-set commands that also toggle on/off.',
-      brightnessMin:             'MQTT value that maps to Matter level 0 (off / minimum).\\nDefault: 0',
-      brightnessMax:             'MQTT value that maps to Matter level 254 (maximum).\\nDefault: 254',
-      // ── Color ─────────────────────────────────────────────────────────────
-      topicColor:                'Subscribe: receives current color state (JSON object).',
-      topicSetColor:             'Publish: sends color commands.\\nFormats:\\n• Hue+Sat: {"hue":0–360, "saturation":0–100}\\n• Color temp: {"colorTemp":153–500} (mireds)\\n• XY: {"x":0.0–1.0, "y":0.0–1.0}',
-      // ── Cover / Window-covering ────────────────────────────────────────────
-      topicSetCoverState:        'Publish: sends combined open/close/stop commands.\\nPayload: payloadOpen, payloadClosed, or payloadStop.',
-      topicSetCoverStateOpen:    'Publish: dedicated topic for "open" command only (optional).\\nPayload: payloadOpen value.',
-      topicSetCoverStateClose:   'Publish: dedicated topic for "close" command only (optional).\\nPayload: payloadClosed value.',
-      topicSetCoverStateStop:    'Publish: dedicated topic for "stop" command only (optional).\\nPayload: payloadStop value.\\nLeave blank to send stop via topicSetCoverState.',
-      topicCoverState:           'Subscribe: receives current cover state string.\\nPayload compared against payloadOpen / payloadClosed / payloadStop.',
-      topicCoverStateOpen:       'Subscribe: any payload on this topic is treated as "open".',
-      topicCoverStateClose:      'Subscribe: any payload on this topic is treated as "closed".',
-      topicCoverStateStop:       'Subscribe: any payload on this topic is treated as "stopped".',
-      topicPosition:             'Subscribe: receives current position value.',
-      topicSetPosition:          'Publish: sends position-set commands.\\nPayload: numeric value in positionMin–positionMax range.',
-      positionMin:               'MQTT value for the fully open position.\\nDefault: 0',
-      positionMax:               'MQTT value for the fully closed position.\\nDefault: 100',
-      topicTiltState:            'Subscribe: receives tilt state string.',
-      topicSetTiltState:         'Publish: sends combined tilt state commands.',
-      topicTilt:                 'Subscribe: receives current tilt angle value.',
-      topicSetTilt:              'Publish: sends tilt-angle set commands.\\nPayload: numeric value in tiltMin–tiltMax range.',
-      tiltMin:                   'MQTT value for 0 % tilt (fully untilted).\\nDefault: 0',
-      tiltMax:                   'MQTT value for 100 % tilt (fully tilted).\\nDefault: 100',
-      topicSafetyStatus:         'Subscribe: receives safety status bitmask value.',
-      topicSetSafetyStatus:      'Publish: sends safety status commands.',
-      payloadOpen:               'Payload for "open" command.\\nDefault: "OPEN"',
-      payloadClosed:             'Payload for "close" command.\\nDefault: "CLOSE"',
-      payloadStop:               'Payload for "stop" command.\\nDefault: "STOP"',
-      // ── Closure ───────────────────────────────────────────────────────────
-      topicSetClosureState:      'Publish: sends combined open/close/stop commands.\\nPayload: payloadOpen, payloadClosed, or payloadStop.',
-      topicSetClosureStateOpen:  'Publish: dedicated topic for "open" command only (optional).\\nPayload: payloadOpen value.',
-      topicSetClosureStateClose: 'Publish: dedicated topic for "close" command only (optional).\\nPayload: payloadClosed value.',
-      topicSetClosureStateStop:  'Publish: dedicated topic for "stop" command only (optional).\\nPayload: payloadStop value.\\nLeave blank to send stop via topicSetClosureState.',
-      topicClosureState:         'Subscribe: receives current closure state string.\\nPayload compared against payloadOpen / payloadClosed / payloadStop.',
-      topicClosureStateOpen:     'Subscribe: any payload on this topic is treated as "open".',
-      topicClosureStateClose:    'Subscribe: any payload on this topic is treated as "closed".',
-      topicClosureStateStop:     'Subscribe: any payload on this topic is treated as "stopped".',
-      topicSetLatch:             'Publish: sends latch commands.',
-      topicLatch:                'Subscribe: receives latch state.',
-      topicMainState:            'Subscribe: receives main-state value for the closure.',
-      // ── Speed / Fan ───────────────────────────────────────────────────────
-      topicSpeed:                'Subscribe: receives current speed/level value.',
-      topicSetSpeed:             'Publish: sends speed-set commands.\\nFan payload: {"level":N, "percent":P}\\nAir-purifier / extractor-hood: plain percentage 0–100.',
-      topicSetSpeedStep:         'Publish: sends incremental speed step.\\nPayload: "+1" to increase, "-1" to decrease.',
-      speedMin:                  'MQTT level value for minimum speed (maps to 0 %).\\nDefault: 0',
-      speedMax:                  'MQTT level value for maximum speed (maps to 100 %).\\nDefault: 5',
-      topicFanMode:              'Subscribe: receives current fan mode string.\\nValues: off | low | medium | high | on | auto | smart',
-      topicSetFanMode:           'Publish: sends fan mode commands.\\nValues: off | low | medium | high | on | auto | smart',
-      // ── Temperature / Thermostat ───────────────────────────────────────────
-      topicLocalTemp:            'Subscribe: receives local/ambient temperature in °C.',
-      topicTargetTemp:           'Subscribe: receives heating setpoint in °C.',
-      topicSetTargetTemp:        'Publish: sends heating setpoint.\\nPayload: numeric °C value.',
-      topicCoolingSetpoint:      'Subscribe: receives cooling setpoint in °C.',
-      topicSetCoolingSetpoint:   'Publish: sends cooling setpoint.\\nPayload: numeric °C value.',
-      topicSystemMode:           'Subscribe: receives current thermostat system mode.\\nValues: off | heat | cool | auto | fan_only | dry | sleep | heat_cool',
-      topicSetSystemMode:        'Publish: sends system mode commands.\\nValues: off | heat | cool | auto | fan_only | dry | sleep | heat_cool',
-      topicRunningState:         'Subscribe: receives thermostat running state.',
-      topicTemperatureLevel:     'Subscribe: receives temperature level setting.',
-      topicSetTemperatureLevel:  'Publish: sends temperature level commands.',
-      // ── Sensors ───────────────────────────────────────────────────────────
-      topicTemperature:          'Subscribe: receives temperature measurement in °C.',
-      topicTemperatureFreezer:   'Subscribe: receives freezer temperature in °C.',
-      topicHumidity:             'Subscribe: receives relative humidity in %.',
-      topicIlluminance:          'Subscribe: receives illuminance in lux.',
-      topicMoisture:             'Subscribe: receives soil/surface moisture value.',
-      topicPressure:             'Subscribe: receives pressure in kPa.',
-      topicFlow:                 'Subscribe: receives flow rate.',
-      topicOpenLevel:            'Subscribe: receives open-level percentage.',
-      topicAirQuality:           'Subscribe: receives air quality index (0–5).\\n0=unknown 1=good 2=fair 3=moderate 4=poor 5=very poor',
-      topicTvoc:                 'Subscribe: receives total VOC in µg/m³.',
-      topicCo2:                  'Subscribe: receives CO₂ concentration in ppm.',
-      topicPm25:                 'Subscribe: receives PM2.5 concentration in µg/m³.',
-      topicOccupancy:            'Subscribe: receives occupancy state.\\nPayload compared against payloadOn / payloadOff.',
-      topicContactState:         'Subscribe: receives contact state.\\nPayload compared against payloadOpen / payloadClosed.',
-      // ── Door lock ─────────────────────────────────────────────────────────
-      topicLockState:            'Subscribe: receives current lock state.\\nPayload compared against payloadLocked / payloadUnlocked / payloadNotFullyLocked.',
-      topicSetLockState:         'Publish: sends lock commands.\\nPayload: payloadLocked or payloadUnlocked value.',
-      payloadLocked:             'Payload for "locked" state.\\nDefault: "LOCK"',
-      payloadUnlocked:           'Payload for "unlocked" state.\\nDefault: "UNLOCK"',
-      payloadNotFullyLocked:     'Payload for "not fully locked" state.\\nDefault: "NOT_FULLY_LOCKED"',
-      topicDoorState:            'Subscribe: receives physical door open/closed state.\\nPayload compared against payloadDoorOpen / payloadDoorClosed.',
-      payloadDoorOpen:           'Payload for door open.\\nDefault: "OPEN"',
-      payloadDoorClosed:         'Payload for door closed.\\nDefault: "CLOSED"',
-      // ── Generic switch ────────────────────────────────────────────────────
-      topicAction:               'Subscribe: receives button action events.\\nPayload compared against payloadPress / payloadDouble / payloadLong / payloadInitialPress / payloadLongRelease.',
-      topicActionPress:          'Subscribe: any payload on this topic triggers a single press.',
-      topicActionDouble:         'Subscribe: any payload on this topic triggers a double press.',
-      topicActionLong:           'Subscribe: any payload on this topic triggers a long press.',
-      topicActionInitialPress:   'Subscribe: any payload on this topic triggers an initial press.',
-      topicActionLongRelease:    'Subscribe: any payload on this topic triggers a long release.',
-      payloadPress:              'Payload that maps to single press.\\nDefault: "press"',
-      payloadDouble:             'Payload that maps to double press.\\nDefault: "double"',
-      payloadLong:               'Payload that maps to long press.\\nDefault: "long"',
-      payloadInitialPress:       'Payload that maps to initial press.\\nDefault: "initial_press"',
-      payloadLongRelease:        'Payload that maps to long press release.\\nDefault: "long_release"',
-      // ── Smoke/CO alarm ────────────────────────────────────────────────────
-      topicSmokeAlarm:           'Subscribe: receives smoke alarm state.\\nPayload compared against payloadAlarmNormal / payloadAlarmWarning / payloadAlarmCritical.',
-      topicCo:                   'Subscribe: receives CO alarm state.\\nPayload compared against payloadAlarmNormal / payloadAlarmWarning / payloadAlarmCritical.',
-      topicBatteryAlert:         'Subscribe: receives battery alert state.\\nPayload compared against payloadAlarmNormal / payloadAlarmWarning / payloadAlarmCritical.',
-      topicHardwareFault:        'Subscribe: receives hardware fault state.',
-      topicTestInProgress:       'Subscribe: receives test-in-progress state.',
-      payloadAlarmNormal:        'Payload for alarm clear / normal state.\\nDefault: "normal"',
-      payloadAlarmWarning:       'Payload for alarm warning state.\\nDefault: "warning"',
-      payloadAlarmCritical:      'Payload for alarm critical state.\\nDefault: "critical"',
-      // ── Operational state ─────────────────────────────────────────────────
-      topicOperationalState:     'Subscribe: receives current operational state string.\\nPayload compared against payloadRunning / payloadStopped / payloadPaused.',
-      topicSetOperationalState:  'Publish: sends operational state commands.',
-      payloadRunning:            'Payload for "running" state.\\nDefault: "running"',
-      payloadStopped:            'Payload for "stopped" state.\\nDefault: "stopped"',
-      payloadPaused:             'Payload for "paused" state.\\nDefault: "paused"',
-      topicCountdownTime:        'Subscribe: receives remaining countdown time (seconds).',
-      topicCurrentPhase:         'Subscribe: receives current operational phase name.',
-      topicOperationalError:     'Subscribe: receives operational error state.',
-      // ── Washer / Dryer ────────────────────────────────────────────────────
-      topicWasherMode:           'Subscribe: receives current washer mode.',
-      topicSetWasherMode:        'Publish: sends washer mode commands.',
-      topicSpinSpeed:            'Subscribe: receives spin speed setting.',
-      topicNumberOfRinses:       'Subscribe: receives number of rinses setting.',
-      topicDrynessLevel:         'Subscribe: receives dryness level setting.',
-      // ── Dishwasher ────────────────────────────────────────────────────────
-      topicDishwasherMode:       'Subscribe: receives current dishwasher mode.',
-      topicSetDishwasherMode:    'Publish: sends dishwasher mode commands.',
-      topicDishwasherAlarm:      'Subscribe: receives dishwasher alarm state.',
-      // ── Oven / Microwave ──────────────────────────────────────────────────
-      topicOvenMode:             'Subscribe: receives current oven mode.',
-      topicSetOvenMode:          'Publish: sends oven mode commands.',
-      topicMicrowaveMode:        'Subscribe: receives current microwave mode.',
-      topicCookTime:             'Subscribe: receives cook time in seconds.',
-      topicSelectedWattIndex:    'Subscribe: receives selected wattage index.',
-      // ── Media / Speaker ───────────────────────────────────────────────────
-      topicPlaybackState:        'Subscribe: receives current playback state.',
-      topicSetPlaybackState:     'Publish: sends playback state commands.',
-      topicSetPlaybackCmd:       'Publish: sends playback control commands (play/pause/stop/next/prev).',
-      topicSetMediaSeek:         'Publish: sends media seek position in seconds.',
-      topicVolume:               'Subscribe: receives current volume level (0–100).',
-      topicSetVolume:            'Publish: sends volume set commands.\\nPayload: numeric 0–100.',
-      // ── Electrical ────────────────────────────────────────────────────────
-      topicPower:                'Subscribe: receives active power in watts.',
-      topicVoltage:              'Subscribe: receives voltage in volts.',
-      topicCurrent:              'Subscribe: receives current in amperes.',
-      topicEnergy:               'Subscribe: receives energy in kWh.',
-      topicFrequency:            'Subscribe: receives line frequency in Hz.',
-      // ── EVSE ──────────────────────────────────────────────────────────────
-      topicEvseState:            'Subscribe: receives EVSE charger state.',
-      // ── Composed device ───────────────────────────────────────────────────
-      components:                'Active sub-component IDs for composed devices, comma-separated.\\nExample: temperatureSensor,humiditySensor',
-      configUrl:                 'Custom URL for the device configuration page.\\nLeave blank to use the auto-generated editor URL.',
-    };
-
-    // ── Hint popup ────────────────────────────────────────────────────────────
-    let activePopup = null;
-
-    function showHint(btn, key) {
-      if (activePopup) { activePopup.remove(); activePopup = null; }
-      const popup = document.createElement('div');
-      popup.className = 'hint-popup';
-      popup.textContent = FIELD_HINTS[key];
-      document.body.appendChild(popup);
-      const rect = btn.getBoundingClientRect();
-      let left = rect.left;
-      if (left + 328 > window.innerWidth) left = Math.max(4, window.innerWidth - 332);
-      popup.style.top = (rect.bottom + 6) + 'px';
-      popup.style.left = left + 'px';
-      activePopup = popup;
-    }
-
-    document.addEventListener('click', function() { if (activePopup) { activePopup.remove(); activePopup = null; } });
-
-    // Build a map: key → [componentId, ...] for composed devices
-    const keyToComponents = {};
-    if (componentDefs) {
-      for (const comp of componentDefs) {
-        for (const key of [...comp.subscribeKeys, ...comp.settingsKeys]) {
-          if (!keyToComponents[key]) keyToComponents[key] = [];
-          keyToComponents[key].push(comp.id);
-        }
-      }
-    }
-
-    // Hidden input that holds the serialised component selection for the save handler
-    let componentsInput = null;
-
-    function updateComponentsInput() {
-      if (!componentsInput) return;
-      const active = [...document.querySelectorAll('[data-component]:checked')].map(el => el.dataset.component);
-      componentsInput.value = active.join(',');
-    }
-
-    function updateComponentVisibility() {
-      if (!componentDefs) return;
-      const active = new Set([...document.querySelectorAll('[data-component]:checked')].map(el => el.dataset.component));
-      document.querySelectorAll('[data-for]').forEach(el => {
-        const required = el.dataset.for.split(' ');
-        el.style.display = required.some(c => active.has(c)) ? '' : 'none';
-      });
-      updateComponentsInput();
-    }
-
-    function updateBatteryVisibility() {
-      const sel = document.querySelector('[name="powerSource"]');
-      const isMains = sel && sel.value === 'mains';
-      document.querySelectorAll('[data-battery]').forEach(el => { el.style.display = isMains ? 'none' : ''; });
-    }
-
-    function makeField(key, value) {
-      const wrap = document.createElement('div');
-      wrap.className = 'field';
-      if (BATTERY_KEYS.includes(key)) wrap.dataset.battery = '1';
-      if (keyToComponents[key]) wrap.dataset.for = keyToComponents[key].join(' ');
-      const label = document.createElement('label');
-      label.appendChild(document.createTextNode(key));
-      if (FIELD_HINTS[key]) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'hint-btn';
-        btn.textContent = '\u24d8';
-        btn.addEventListener('click', function(e) { e.stopPropagation(); showHint(btn, key); });
-        label.appendChild(btn);
-      }
-      let input;
-      if (key === 'powerSource') {
-        input = document.createElement('select');
-        input.name = key;
-        [['', '\u2014 not set \u2014'], ['battery', 'Battery'], ['mains', 'Mains']].forEach(([v, t]) => {
-          const opt = document.createElement('option');
-          opt.value = v;
-          opt.textContent = t;
-          if (String(value ?? '') === v) opt.selected = true;
-          input.appendChild(opt);
-        });
-        input.addEventListener('change', updateBatteryVisibility);
-      } else if (key === 'retain' || key === 'batteryValueBased') {
-        input = document.createElement('input');
-        input.type = 'checkbox';
-        input.name = key;
-        input.checked = !!value;
-      } else {
-        input = document.createElement('input');
-        input.type = 'text';
-        input.name = key;
-        input.value = value == null ? '' : String(value);
-      }
-      wrap.appendChild(label);
-      wrap.appendChild(input);
-      return wrap;
-    }
-
-    // Render component checkboxes panel (composed devices only)
-    if (componentDefs) {
-      const heading = document.createElement('div');
-      heading.className = 'section-label';
-      heading.textContent = 'Components';
-      fields.appendChild(heading);
-
-      const panelWrap = document.createElement('div');
-      panelWrap.className = 'field full';
-      const checksDiv = document.createElement('div');
-      checksDiv.className = 'comp-checks';
-
-      const activeComponents = new Set((initial['components'] || '').split(',').map(s => s.trim()).filter(Boolean));
-
-      for (const comp of componentDefs) {
-        const lbl = document.createElement('label');
-        lbl.className = 'comp-check';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.dataset.component = comp.id;
-        cb.checked = activeComponents.has(comp.id);
-        cb.addEventListener('change', updateComponentVisibility);
-        lbl.appendChild(cb);
-        lbl.appendChild(document.createTextNode(comp.label));
-        checksDiv.appendChild(lbl);
-      }
-
-      // Hidden input so the save handler can read the current selection via [name="components"]
-      componentsInput = document.createElement('input');
-      componentsInput.type = 'hidden';
-      componentsInput.name = 'components';
-      componentsInput.value = initial['components'] || '';
-
-      panelWrap.appendChild(checksDiv);
-      panelWrap.appendChild(componentsInput);
-      fields.appendChild(panelWrap);
-    }
-
-    for (const [groupName, groupKeys] of Object.entries(groups)) {
-      if (!groupKeys.length) continue;
-      // 'components' is rendered as checkboxes above — skip the normal field
-      const visibleKeys = groupKeys.filter(k => k !== 'components');
-      if (!visibleKeys.length) continue;
-      const heading = document.createElement('div');
-      heading.className = 'section-label';
-      heading.textContent = GROUP_LABELS[groupName] ?? groupName;
-      fields.appendChild(heading);
-      visibleKeys.forEach((key) => fields.appendChild(makeField(key, initial[key])));
-    }
-
-    updateBatteryVisibility();
-    updateComponentVisibility();
-
-    const allKeys = [...groups.publish, ...groups.subscribe, ...groups.settings];
-
-    saveBtn.addEventListener('click', async () => {
-      updateComponentsInput();
-      status.textContent = 'Saving...';
-      const payload = { deviceId };
-      allKeys.forEach((key) => {
-        const input = document.querySelector('[name="' + key + '"]');
-        if (!input) return;
-        payload[key] = (key === 'retain' || key === 'batteryValueBased') ? input.checked : input.value;
-      });
-
-      try {
-        const params = new URLSearchParams();
-        params.set('deviceId', deviceId);
-        allKeys.forEach((key) => params.set(key, String(payload[key] ?? '')));
-
-        const resp = await fetch('/api/matterbridge-mqtt-config?' + params.toString(), { method: 'GET' });
-        const data = await resp.json();
-        if (!resp.ok || !data.ok) {
-          status.textContent = 'Save failed: ' + (data.error || 'unknown error');
-          return;
-        }
-        status.textContent = 'Saved. Restart plugin to apply runtime changes.';
-      } catch (error) {
-        status.textContent = 'Save failed: ' + error;
-      }
-    });
-  </script>
-</body>
-</html>`;
-  }
-
-  private escapeHtml(input: string): string {
-    return input.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  private persistCurrentConfig(): void {
+    this.saveConfig(this.config);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -902,10 +273,8 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   private buildDeviceConfigUrl(cfg: MqttDeviceConfig): string {
     if (cfg.configUrl && cfg.configUrl.trim() !== '') return cfg.configUrl.trim();
-
-    const pluginName = encodeURIComponent(String(this.config['name'] ?? 'matterbridge-mqtt-devices'));
     const deviceId = encodeURIComponent(cfg.id ?? 'unknown');
-    return `/matterbridge-mqtt-config?plugin=${pluginName}&device=${deviceId}`;
+    return `/plugins/matterbridge-mqtt-devices/?device=${deviceId}`;
   }
 
   private applyConfigUrl(ep: MatterbridgeEndpoint, cfg: MqttDeviceConfig): void {
