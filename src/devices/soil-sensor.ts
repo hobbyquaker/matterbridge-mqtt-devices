@@ -1,5 +1,5 @@
 import { MatterbridgeEndpoint, powerSource, soilSensor } from 'matterbridge';
-import { SoilMeasurementServer } from 'matterbridge/devices';
+import { SoilMeasurementServer } from 'matterbridge/matter/behaviors';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';

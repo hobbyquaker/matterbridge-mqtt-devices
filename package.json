@@ -115,6 +115,9 @@
     "matterbridge:disable": "matterbridge -disable .",
     "matterbridge:list": "matterbridge -list"
   },
+  "peerDependencies": {
+    "matterbridge": ">=3.8.0"
+  },
   "dependencies": {
     "mqtt": "^5.0.0",
     "node-ansi-logger": "3.2.1",

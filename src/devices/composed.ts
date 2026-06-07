@@ -1,6 +1,6 @@
 import type { DeviceTypeDefinition } from 'matterbridge';
 import { airQualitySensor, humiditySensor, lightSensor, MatterbridgeEndpoint, powerSource, pressureSensor, rainSensor, soilSensor, temperatureSensor } from 'matterbridge';
-import { SoilMeasurementServer } from 'matterbridge/devices';
+import { SoilMeasurementServer } from 'matterbridge/matter/behaviors';
 
 import type { ComposedComponentDef, DeviceContext, DeviceDescriptor, EditableDeviceKey, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';

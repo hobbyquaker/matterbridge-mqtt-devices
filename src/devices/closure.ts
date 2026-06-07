@@ -41,7 +41,7 @@ export const closureDescriptor: DeviceDescriptor = {
     const ep = new MatterbridgeEndpoint([closure, powerSource]);
     ctx.initEp(ep, cfg, 0x8022);
     ctx.applyConfigUrl(ep, cfg);
-    ep.addRequiredClusterServers();
+    ep.addRequiredClusters();
 
     // ── ClosureControl commands ──────────────────────────────────────────────
 

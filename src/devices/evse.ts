@@ -33,7 +33,7 @@ export const evseDescriptor: DeviceDescriptor = {
     ctx.initEp(ep, cfg, 0x8028);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultElectricalPowerMeasurementClusterServer();
-    ep.addRequiredClusterServers();
+    ep.addRequiredClusters();
 
     if (cfg.topicSetOnOff) {
       const setTopic = cfg.topicSetOnOff;
