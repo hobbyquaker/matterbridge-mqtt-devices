@@ -18,6 +18,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
+      reportsDirectory: './coverage-vitest',
       include: ['**/src/**/*.{ts,mts,cts}'],
       exclude: ['**/.cache', '**/apps/', '**/build', '**/chip', '**/coverage', '**/dist/', '**/node_modules/', '**/screenshots', '**/temp', '**/vendor', '**/src/**/*.d.ts'],
       thresholds: {
