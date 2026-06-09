@@ -1,9 +1,6 @@
 # <img src="https://matterbridge.io/assets/matterbridge.svg" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge MQTT Devices
 
 [![npm version](https://img.shields.io/npm/v/matterbridge-mqtt-devices.svg)](https://www.npmjs.com/package/matterbridge-mqtt-devices)
-[![npm downloads](https://img.shields.io/npm/dt/matterbridge-mqtt-devices.svg)](https://www.npmjs.com/package/matterbridge-mqtt-devices)
-![Node.js CI](https://github.com/hobbyquaker/matterbridge-mqtt-devices/actions/workflows/build.yml/badge.svg)
-![CodeQL](https://github.com/hobbyquaker/matterbridge-mqtt-devices/actions/workflows/codeql.yml/badge.svg)
 [![codecov](https://codecov.io/gh/hobbyquaker/matterbridge-mqtt-devices/branch/main/graph/badge.svg)](https://codecov.io/gh/hobbyquaker/matterbridge-mqtt-devices)
 
 A [Matterbridge](https://github.com/Luligu/matterbridge) plugin that exposes MQTT-connected devices as native Matter accessories. It bridges your existing MQTT smart home devices — sensors, lights, covers, locks, thermostats and more — to any Matter controller such as Apple Home, Google Home, Amazon Alexa or Home Assistant. With this Plugin you have to create devices and assign MQTT topics manually in the Matterbridge Web UI (no config file editing neccessary).
