@@ -9,7 +9,7 @@ import path from 'node:path';
 import type { PlatformConfig, PlatformMatterbridge } from 'matterbridge';
 import { AnsiLogger } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // vi.mock is hoisted — declare mock client via vi.hoisted so it is available in the factory
 const mockMqttClient = vi.hoisted(() => ({
@@ -27,8 +27,8 @@ vi.mock('mqtt', () => ({
   default: { connect: vi.fn(() => mockMqttClient) },
 }));
 
-import initializePlugin, { MqttPlatform } from '../src/module.js';
 import type { MqttDeviceConfig } from '../src/devices/index.js';
+import initializePlugin, { MqttPlatform } from '../src/module.js';
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -80,9 +80,7 @@ function makeInstance(extra: Record<string, unknown> = {}): MqttPlatform {
 // ── Private method accessor ────────────────────────────────────────────────────
 // Private methods are accessed via `as any` cast — compile-time private is a TypeScript
 // construct only; at runtime they are regular methods.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function priv(inst: MqttPlatform): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return inst as any;
 }
 
@@ -640,8 +638,9 @@ describe('MqttPlatform – MQTT routing', () => {
     instance = makeInstance();
     await instance.onStart('test');
     // onStart → connectMqtt → mqttClient.on('message', handler) is now recorded
-    const call = mockMqttClient.on.mock.calls.find(([e]: [string]) => e === 'message');
-    messageHandler = call![1] as (topic: string, buf: Buffer) => void;
+    const messageCall = mockMqttClient.on.mock.calls.find(([e]: [string]) => e === 'message');
+    if (!messageCall) throw new Error('Expected MQTT "message" handler to be registered');
+    messageHandler = messageCall[1] as (topic: string, buf: Buffer) => void;
   });
 
   afterAll(() => {
