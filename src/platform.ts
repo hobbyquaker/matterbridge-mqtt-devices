@@ -171,10 +171,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
     }
 
     if (method === 'POST') {
-      // Matterbridge does not apply express.json() to plugin API routes so
-      // req.body is always undefined. All save parameters are sent as URL
-      // query params instead; fall back to body if a future release fixes this.
-      const params = (body && typeof body === 'object' ? body : query) as Record<string, unknown>;
+      const params = body as Record<string, unknown>;
       const deviceId = String(params?.['deviceId'] ?? '');
       if (!deviceId) return { ok: false, error: 'deviceId is required' };
       const updated = this.applyAdvancedValues(deviceId, params);
