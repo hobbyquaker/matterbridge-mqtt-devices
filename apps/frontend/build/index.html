@@ -217,6 +217,15 @@
       configUrl:                 'Custom URL for the device configuration page.\nLeave blank to use the auto-generated editor URL.',
     };
 
+    // TECHNICAL DEBT: Since Matterbridge 3.9.2 the UI force-appends a trailing
+    // slash to configUrl before loading it in the iframe, corrupting the query
+    // string to device=<id>/. Strip trailing slashes until the upstream fix in
+    // https://github.com/Luligu/matterbridge/issues (see plugin issue #2) lands.
+    function getDeviceId() {
+      const raw = new URLSearchParams(window.location.search).get('device');
+      return raw ? raw.replace(/\/+$/, '') : raw;
+    }
+
     // ── DOM refs ──────────────────────────────────────────────────────────────
     const fields = document.getElementById('fields');
     const status = document.getElementById('status');
@@ -316,7 +325,7 @@
       updateComponentsInput();
       status.textContent = 'Saving…';
       saveBtn.disabled = true;
-      const deviceId = new URLSearchParams(window.location.search).get('device');
+      const deviceId = getDeviceId();
       const payload = { deviceId };
       allKeys.forEach(key => {
         const input = document.querySelector('[name="' + key + '"]');
@@ -344,7 +353,7 @@
 
     // ── Initialise: load data from API and render form ────────────────────────
     async function init() {
-      const deviceId = new URLSearchParams(window.location.search).get('device');
+      const deviceId = getDeviceId();
       if (!deviceId) { status.textContent = 'No device specified.'; return; }
 
       let data;
