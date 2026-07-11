@@ -163,10 +163,15 @@ export interface MqttDeviceConfig {
   brightnessMin?: number;
   brightnessMax?: number;
 
-  // color (colorlight)
+  // color (extended-color-light)
   topicColor?: string;
   payloadColorJsonPath?: string;
   topicSetColor?: string;
+
+  // color temperature (color-temperature-light)
+  topicColorTemp?: string;
+  payloadColorTempJsonPath?: string;
+  topicSetColorTemp?: string;
   colorTempMin?: number;
   colorTempMax?: number;
 
@@ -454,6 +459,9 @@ export type EditableDeviceKey =
   | 'topicColor'
   | 'payloadColorJsonPath'
   | 'topicSetColor'
+  | 'topicColorTemp'
+  | 'payloadColorTempJsonPath'
+  | 'topicSetColorTemp'
   | 'colorTempMin'
   | 'colorTempMax'
   | 'payloadOpen'
@@ -697,6 +705,9 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'topicColor',
   'payloadColorJsonPath',
   'topicSetColor',
+  'topicColorTemp',
+  'payloadColorTempJsonPath',
+  'topicSetColorTemp',
   'colorTempMin',
   'colorTempMax',
   'payloadOpen',
@@ -927,6 +938,7 @@ export interface DeviceContext {
   parseOnOff(payload: string, on: string, off: string, jsonPath?: string): boolean | null;
   parseFloatPayload(payload: string, keys: string[], jsonPath?: string): number | null;
   extractPayloadValue(payload: string, jsonPath?: string): unknown;
+  wrapPayloadValue(value: unknown, jsonPath?: string): string;
   toPayloadString(value: unknown): string;
   getBrightnessRange(cfg: MqttDeviceConfig): { min: number; max: number };
   matterLevelToMqttBrightness(level254: number, min: number, max: number): number;

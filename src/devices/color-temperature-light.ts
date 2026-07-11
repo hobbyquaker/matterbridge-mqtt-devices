@@ -6,12 +6,17 @@ import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 export const colorTemperatureLightDescriptor: DeviceDescriptor = {
   type: 'color-temperature-light',
   editableKeys: {
-    publish: ['topicSetOnOff', 'topicMoveToLevel', 'topicMoveToLevelWithOnOff', 'topicSetColor'],
-    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCurrentLevel', 'payloadCurrentLevelJsonPath', 'topicColor', 'payloadColorJsonPath'],
+    publish: ['topicSetOnOff', 'topicMoveToLevel', 'topicMoveToLevelWithOnOff', 'topicSetColorTemp'],
+    subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCurrentLevel', 'payloadCurrentLevelJsonPath', 'topicColorTemp', 'payloadColorTempJsonPath'],
     settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain', 'brightnessMin', 'brightnessMax', 'colorTempMin', 'colorTempMax'],
   },
-  applyDefaults(_cfg, _baseTopic) {
-    return {};
+  applyDefaults(cfg, _baseTopic) {
+    // Legacy key migration: earlier releases used the shared color keys.
+    return {
+      topicColorTemp: cfg.topicColorTemp ?? cfg.topicColor,
+      payloadColorTempJsonPath: cfg.payloadColorTempJsonPath ?? cfg.payloadColorJsonPath,
+      topicSetColorTemp: cfg.topicSetColorTemp ?? cfg.topicSetColor,
+    };
   },
   async create(ctx: DeviceContext, cfg: MqttDeviceConfig): Promise<void> {
     const ON = cfg.payloadOn ?? 'ON';
@@ -48,11 +53,11 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
       }) as AnyHandler);
     }
 
-    if (cfg.topicSetColor) {
-      const colorTopic = cfg.topicSetColor;
+    if (cfg.topicSetColorTemp) {
+      const colorTempTopic = cfg.topicSetColorTemp;
       ctx.onCmd(ep, 'moveToColorTemperature', ((data: ColorTempRequest) => {
         const mireds = data.request.colorTemperatureMireds;
-        ctx.publish(colorTopic, JSON.stringify({ colorTemp: mireds }), cfg.retain);
+        ctx.publish(colorTempTopic, ctx.wrapPayloadValue(mireds, cfg.payloadColorTempJsonPath), cfg.retain);
       }) as AnyHandler);
     }
 
@@ -71,9 +76,9 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
         }
       });
     }
-    if (cfg.topicColor) {
-      ctx.subscribe(cfg.topicColor, (p) => {
-        const extracted = ctx.extractPayloadValue(p, cfg.payloadColorJsonPath);
+    if (cfg.topicColorTemp) {
+      ctx.subscribe(cfg.topicColorTemp, (p) => {
+        const extracted = ctx.extractPayloadValue(p, cfg.payloadColorTempJsonPath);
         if (extracted !== undefined && extracted !== null && typeof extracted === 'object') {
           const d = extracted as Record<string, number>;
           if (d['colorTemp'] !== undefined) ctx.setAttr(ep, CID.ColorControl, 'colorTemperatureMireds', d['colorTemp']);

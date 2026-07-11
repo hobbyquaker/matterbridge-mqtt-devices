@@ -383,6 +383,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       parseOnOff: this.parseOnOff.bind(this),
       parseFloatPayload: this.parseFloatPayload.bind(this),
       extractPayloadValue: this.extractPayloadValue.bind(this),
+      wrapPayloadValue: this.wrapPayloadValue.bind(this),
       toPayloadString: this.toPayloadString.bind(this),
       getBrightnessRange: this.getBrightnessRange.bind(this),
       matterLevelToMqttBrightness: this.matterLevelToMqttBrightness.bind(this),
@@ -394,6 +395,24 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
   }
 
   // ── Utility ────────────────────────────────────────────────────────────────
+
+  // Tokenizes a json path: dot notation + array index, e.g. sensor.state.value or values[0].temp
+  private parseJsonPathTokens(jsonPath: string): string[] {
+    const normalizedPath = jsonPath.trim().replace(/^\$\./, '').replace(/^\$/, '');
+    const tokens: string[] = [];
+    for (const part of normalizedPath.split('.')) {
+      const matches = part.match(/[^[\]]+|\[\d+\]/g);
+      if (!matches) continue;
+      for (const match of matches) {
+        if (match.startsWith('[') && match.endsWith(']')) {
+          tokens.push(match.slice(1, -1));
+        } else {
+          tokens.push(match);
+        }
+      }
+    }
+    return tokens;
+  }
 
   // Lightweight path resolver: dot notation + array index, e.g. sensor.state.value or values[0].temp
   private extractPayloadValue(payload: string, jsonPath?: string): unknown {
@@ -407,21 +426,8 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       return payload;
     }
 
-    const normalizedPath = jsonPath.trim().replace(/^\$\./, '').replace(/^\$/, '');
-    if (!normalizedPath) return root;
-
-    const tokens: string[] = [];
-    for (const part of normalizedPath.split('.')) {
-      const matches = part.match(/[^[\]]+|\[\d+\]/g);
-      if (!matches) continue;
-      for (const match of matches) {
-        if (match.startsWith('[') && match.endsWith(']')) {
-          tokens.push(match.slice(1, -1));
-        } else {
-          tokens.push(match);
-        }
-      }
-    }
+    const tokens = this.parseJsonPathTokens(jsonPath);
+    if (!tokens.length) return root;
 
     let current: unknown = root;
     for (const token of tokens) {
@@ -436,6 +442,27 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       current = (current as Record<string, unknown>)[token];
     }
     return current;
+  }
+
+  // Inverse of extractPayloadValue: wraps a value into a JSON structure at the given path,
+  // e.g. state.ct → {"state":{"ct":<value>}}. Without a path the plain value is returned.
+  private wrapPayloadValue(value: unknown, jsonPath?: string): string {
+    if (!jsonPath) return this.toPayloadString(value);
+    const tokens = this.parseJsonPathTokens(jsonPath);
+    if (!tokens.length) return this.toPayloadString(value);
+
+    let current: unknown = value;
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      const token = tokens[i];
+      if (/^\d+$/.test(token)) {
+        const arr: unknown[] = [];
+        arr[Number(token)] = current;
+        current = arr;
+      } else {
+        current = { [token]: current };
+      }
+    }
+    return JSON.stringify(current);
   }
 
   private toPayloadString(value: unknown): string {
