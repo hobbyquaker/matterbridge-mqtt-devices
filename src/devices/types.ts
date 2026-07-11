@@ -38,7 +38,6 @@ export type DeviceKind =
   | 'on-off-mounted-switch'
   | 'dimmable-switch'
   | 'dimmable-mounted-switch'
-  | 'color-temperature-switch'
   | 'air-conditioner'
   | 'air-purifier'
   | 'electrical-sensor'
@@ -168,6 +167,8 @@ export interface MqttDeviceConfig {
   topicColor?: string;
   payloadColorJsonPath?: string;
   topicSetColor?: string;
+  colorTempMin?: number;
+  colorTempMax?: number;
 
   // window-covering (lift)
   payloadOpen?: string;
@@ -453,6 +454,8 @@ export type EditableDeviceKey =
   | 'topicColor'
   | 'payloadColorJsonPath'
   | 'topicSetColor'
+  | 'colorTempMin'
+  | 'colorTempMax'
   | 'payloadOpen'
   | 'payloadClosed'
   | 'payloadStop'
@@ -694,6 +697,8 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
   'topicColor',
   'payloadColorJsonPath',
   'topicSetColor',
+  'colorTempMin',
+  'colorTempMax',
   'payloadOpen',
   'payloadClosed',
   'payloadStop',
@@ -876,6 +881,8 @@ export const ALL_EDITABLE_KEYS: readonly EditableDeviceKey[] = [
 export const NUMBER_KEYS: readonly EditableDeviceKey[] = [
   'brightnessMin',
   'brightnessMax',
+  'colorTempMin',
+  'colorTempMax',
   'positionMin',
   'positionMax',
   'tiltMin',

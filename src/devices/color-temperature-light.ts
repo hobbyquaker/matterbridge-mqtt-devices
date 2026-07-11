@@ -1,6 +1,6 @@
 import { colorTemperatureLight, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
-import type { AnyHandler, ColorTempRequest, DeviceContext, DeviceDescriptor, HueSatRequest, LevelRequest, MqttDeviceConfig } from './types.js';
+import type { AnyHandler, ColorTempRequest, DeviceContext, DeviceDescriptor, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
 
 export const colorTemperatureLightDescriptor: DeviceDescriptor = {
@@ -8,7 +8,7 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
   editableKeys: {
     publish: ['topicSetOnOff', 'topicMoveToLevel', 'topicMoveToLevelWithOnOff', 'topicSetColor'],
     subscribe: [...COMMON_SUBSCRIBE_KEYS, 'topicOnOff', 'payloadOnOffJsonPath', 'topicCurrentLevel', 'payloadCurrentLevelJsonPath', 'topicColor', 'payloadColorJsonPath'],
-    settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain', 'brightnessMin', 'brightnessMax'],
+    settings: [...COMMON_SETTINGS_KEYS, 'payloadOn', 'payloadOff', 'retain', 'brightnessMin', 'brightnessMax', 'colorTempMin', 'colorTempMax'],
   },
   applyDefaults(_cfg, _baseTopic) {
     return {};
@@ -23,7 +23,11 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();
     ep.createDefaultLevelControlClusterServer();
-    ep.createDefaultColorControlClusterServer();
+    // CT feature only: the default helper also enables HueSaturation and Xy,
+    // which makes controllers like Apple Home render a full RGB color wheel.
+    const ctMin = cfg.colorTempMin ?? 147;
+    const ctMax = cfg.colorTempMax ?? 500;
+    ep.createCtColorControlClusterServer(Math.min(Math.max(250, ctMin), ctMax), ctMin, ctMax);
 
     if (cfg.topicSetOnOff) {
       const setTopic = cfg.topicSetOnOff;
@@ -46,12 +50,6 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
 
     if (cfg.topicSetColor) {
       const colorTopic = cfg.topicSetColor;
-      ctx.onCmd(ep, 'moveToHueAndSaturation', ((data: HueSatRequest) => {
-        const hue360 = Math.round((data.request.hue / 254) * 360);
-        const sat100 = Math.round((data.request.saturation / 254) * 100);
-        ctx.publish(colorTopic, JSON.stringify({ hue: hue360, saturation: sat100 }), cfg.retain);
-      }) as AnyHandler);
-
       ctx.onCmd(ep, 'moveToColorTemperature', ((data: ColorTempRequest) => {
         const mireds = data.request.colorTemperatureMireds;
         ctx.publish(colorTopic, JSON.stringify({ colorTemp: mireds }), cfg.retain);
@@ -78,8 +76,6 @@ export const colorTemperatureLightDescriptor: DeviceDescriptor = {
         const extracted = ctx.extractPayloadValue(p, cfg.payloadColorJsonPath);
         if (extracted !== undefined && extracted !== null && typeof extracted === 'object') {
           const d = extracted as Record<string, number>;
-          if (d['hue'] !== undefined) ctx.setAttr(ep, CID.ColorControl, 'currentHue', Math.round((d['hue'] / 360) * 254));
-          if (d['saturation'] !== undefined) ctx.setAttr(ep, CID.ColorControl, 'currentSaturation', Math.round((d['saturation'] / 100) * 254));
           if (d['colorTemp'] !== undefined) ctx.setAttr(ep, CID.ColorControl, 'colorTemperatureMireds', d['colorTemp']);
           return;
         }

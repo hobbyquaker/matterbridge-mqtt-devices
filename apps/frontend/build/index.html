@@ -71,7 +71,9 @@
       brightnessMax:             'MQTT value that maps to Matter level 254 (maximum).\nDefault: 254',
       // ── Color ─────────────────────────────────────────────────────────────
       topicColor:                'Subscribe: receives current color state (JSON object).',
-      topicSetColor:             'Publish: sends color commands.\nFormats:\n• Hue+Sat: {"hue":0–360, "saturation":0–100}\n• Color temp: {"colorTemp":153–500} (mireds)\n• XY: {"x":0.0–1.0, "y":0.0–1.0}',
+      topicSetColor:             'Publish: sends color commands.\nFormats:\n• Hue+Sat: {"hue":0–360, "saturation":0–100}\n• Color temp: {"colorTemp":153–500} (mireds)\n• XY: {"x":0.0–1.0, "y":0.0–1.0}\ncolor-temperature-light sends only the colorTemp format.',
+      colorTempMin:              'Lowest supported color temperature in mireds (warmest limit is colorTempMax).\nDefault: 147',
+      colorTempMax:              'Highest supported color temperature in mireds (warm white).\nDefault: 500',
       // ── Cover / Window-covering ────────────────────────────────────────────
       topicSetCoverState:        'Publish: sends combined open/close/stop commands.\nPayload: payloadOpen, payloadClosed, or payloadStop.',
       topicSetCoverStateOpen:    'Publish: dedicated topic for "open" command only (optional).\nPayload: payloadOpen value.',

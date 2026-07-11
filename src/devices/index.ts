@@ -11,7 +11,6 @@ import { batteryStorageDescriptor } from './battery-storage.js';
 import { castingVideoPlayerDescriptor } from './casting-video-player.js';
 import { closureDescriptor } from './closure.js';
 import { colorTemperatureLightDescriptor } from './color-temperature-light.js';
-import { colorTemperatureSwitchDescriptor } from './color-temperature-switch.js';
 import { composedDescriptor } from './composed.js';
 import { contactSensorDescriptor } from './contact-sensor.js';
 import { cooktopDescriptor } from './cooktop.js';
@@ -69,7 +68,6 @@ export const DEVICE_REGISTRY: readonly DeviceDescriptor[] = [
   castingVideoPlayerDescriptor,
   closureDescriptor,
   colorTemperatureLightDescriptor,
-  colorTemperatureSwitchDescriptor,
   composedDescriptor,
   contactSensorDescriptor,
   cooktopDescriptor,

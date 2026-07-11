@@ -62,63 +62,62 @@ The top-level plugin configuration lives in `matterbridge-mqtt-devices.config.js
 
 ## Device Types
 
-| Type                       | Matter device class      | Description                                                  |
-| -------------------------- | ------------------------ | ------------------------------------------------------------ |
-| `air-conditioner`          | Air Conditioner          | HVAC with heating/cooling setpoints, fan speed, on/off       |
-| `air-purifier`             | Air Purifier             | Fan speed + on/off                                           |
-| `air-quality-sensor`       | Air Quality Sensor       | IAQ index + TVOC + CO₂                                       |
-| `basic-video-player`       | Basic Video Player       | On/off + media playback control                              |
-| `battery-storage`          | Battery Storage          | Battery energy storage with power and state of charge        |
-| `casting-video-player`     | Casting Video Player     | On/off + media playback + content launcher                   |
-| `closure`                  | Closure                  | Matter 1.5 closure (garage doors, gates)                     |
-| `color-temperature-light`  | Color Temperature Light  | White-spectrum light with hue/saturation + color temperature |
-| `color-temperature-switch` | Color Temperature Switch | Color temperature light switch                               |
-| `composed`                 | Multiple device types    | Combine any subset of sensor measurements on one endpoint    |
-| `contact-sensor`           | Contact Sensor           | Open/closed state                                            |
-| `cooktop`                  | Cooktop                  | On/off + operational state                                   |
-| `device-energy-management` | Device Energy Management | Matter ESA energy management device                          |
-| `dimmable-light`           | Dimmable Light           | Light with brightness control                                |
-| `dimmable-mounted-switch`  | Dimmable Mounted Switch  | Hardwired mounted dimmer switch                              |
-| `dimmable-outlet`          | Dimmable Plug-in Unit    | Dimmer outlet                                                |
-| `dimmable-switch`          | Dimmable Light Switch    | Dimmer switch                                                |
-| `dishwasher`               | Dishwasher               | Operational state reporting                                  |
-| `door-lock`                | Door Lock                | Lock / unlock control                                        |
-| `electrical-sensor`        | Electrical Sensor        | Power (W), voltage (V), current (A), energy (Wh)             |
-| `evse`                     | EVSE                     | EV charging station with power reporting                     |
-| `extended-color-light`     | Extended Color Light     | Full-color light with hue/saturation, color temp and XY      |
-| `extractor-hood`           | Extractor Hood           | Fan speed + on/off                                           |
-| `fan`                      | Fan                      | Fan speed control                                            |
-| `flow-sensor`              | Flow Sensor              | m³/h measurement                                             |
-| `generic-switch`           | Generic Switch           | Momentary switch emitting single/double/long press events    |
-| `heat-pump`                | Heat Pump                | Thermostat + electrical power measurement                    |
-| `humidity-sensor`          | Humidity Sensor          | % RH measurement                                             |
-| `irrigation-system`        | Irrigation System        | Open/close valve for irrigation                              |
-| `laundry-dryer`            | Laundry Dryer            | Operational state reporting                                  |
-| `laundry-washer`           | Laundry Washer           | Operational state reporting                                  |
-| `light-sensor`             | Light Sensor             | Lux measurement                                              |
-| `microwave-oven`           | Microwave Oven           | Operational state reporting                                  |
-| `occupancy-sensor`         | Occupancy Sensor         | Occupied/clear state                                         |
-| `on-off-light`             | On/Off Light             | Simple on/off light                                          |
-| `on-off-mounted-switch`    | On/Off Mounted Switch    | Hardwired mounted switch                                     |
-| `on-off-outlet`            | On/Off Plug-in Unit      | Smart plug / outlet                                          |
-| `on-off-switch`            | On/Off Light Switch      | Wall switch                                                  |
-| `oven`                     | Oven                     | Operational state + cavity temperature                       |
-| `pressure-sensor`          | Pressure Sensor          | hPa measurement                                              |
-| `pump`                     | Pump                     | Pump on/off control                                          |
-| `rain-sensor`              | Rain Sensor              | Raining/dry boolean                                          |
-| `refrigerator`             | Refrigerator             | Temperature measurement                                      |
-| `robotic-vacuum-cleaner`   | Robotic Vacuum Cleaner   | Operational state reporting (running/stopped/paused)         |
-| `smoke-co-alarm`           | Smoke/CO Alarm           | Smoke and CO alarm with normal/warning/critical levels       |
-| `soil-sensor`              | Soil Sensor              | Soil moisture                                                |
-| `solar-power`              | Solar Power              | PV power and exported energy                                 |
-| `speaker`                  | Speaker                  | Volume control + mute/unmute                                 |
-| `temperature-sensor`       | Temperature Sensor       | °C measurement                                               |
-| `thermostat`               | Thermostat               | Heating/cooling setpoint + local temperature                 |
-| `water-freeze-detector`    | Water Freeze Detector    | Frozen/normal boolean                                        |
-| `water-heater`             | Water Heater             | Heating setpoint + local temperature                         |
-| `water-leak-detector`      | Water Leak Detector      | Wet/dry boolean                                              |
-| `water-valve`              | Water Valve              | Open/close valve                                             |
-| `window-covering`          | Window Covering          | Blinds, shutters or roller shades with position and tilt     |
+| Type                       | Matter device class      | Description                                               |
+| -------------------------- | ------------------------ | --------------------------------------------------------- |
+| `air-conditioner`          | Air Conditioner          | HVAC with heating/cooling setpoints, fan speed, on/off    |
+| `air-purifier`             | Air Purifier             | Fan speed + on/off                                        |
+| `air-quality-sensor`       | Air Quality Sensor       | IAQ index + TVOC + CO₂                                    |
+| `basic-video-player`       | Basic Video Player       | On/off + media playback control                           |
+| `battery-storage`          | Battery Storage          | Battery energy storage with power and state of charge     |
+| `casting-video-player`     | Casting Video Player     | On/off + media playback + content launcher                |
+| `closure`                  | Closure                  | Matter 1.5 closure (garage doors, gates)                  |
+| `color-temperature-light`  | Color Temperature Light  | White-spectrum light with brightness + color temperature  |
+| `composed`                 | Multiple device types    | Combine any subset of sensor measurements on one endpoint |
+| `contact-sensor`           | Contact Sensor           | Open/closed state                                         |
+| `cooktop`                  | Cooktop                  | On/off + operational state                                |
+| `device-energy-management` | Device Energy Management | Matter ESA energy management device                       |
+| `dimmable-light`           | Dimmable Light           | Light with brightness control                             |
+| `dimmable-mounted-switch`  | Dimmable Mounted Switch  | Hardwired mounted dimmer switch                           |
+| `dimmable-outlet`          | Dimmable Plug-in Unit    | Dimmer outlet                                             |
+| `dimmable-switch`          | Dimmable Light Switch    | Dimmer switch                                             |
+| `dishwasher`               | Dishwasher               | Operational state reporting                               |
+| `door-lock`                | Door Lock                | Lock / unlock control                                     |
+| `electrical-sensor`        | Electrical Sensor        | Power (W), voltage (V), current (A), energy (Wh)          |
+| `evse`                     | EVSE                     | EV charging station with power reporting                  |
+| `extended-color-light`     | Extended Color Light     | Full-color light with hue/saturation, color temp and XY   |
+| `extractor-hood`           | Extractor Hood           | Fan speed + on/off                                        |
+| `fan`                      | Fan                      | Fan speed control                                         |
+| `flow-sensor`              | Flow Sensor              | m³/h measurement                                          |
+| `generic-switch`           | Generic Switch           | Momentary switch emitting single/double/long press events |
+| `heat-pump`                | Heat Pump                | Thermostat + electrical power measurement                 |
+| `humidity-sensor`          | Humidity Sensor          | % RH measurement                                          |
+| `irrigation-system`        | Irrigation System        | Open/close valve for irrigation                           |
+| `laundry-dryer`            | Laundry Dryer            | Operational state reporting                               |
+| `laundry-washer`           | Laundry Washer           | Operational state reporting                               |
+| `light-sensor`             | Light Sensor             | Lux measurement                                           |
+| `microwave-oven`           | Microwave Oven           | Operational state reporting                               |
+| `occupancy-sensor`         | Occupancy Sensor         | Occupied/clear state                                      |
+| `on-off-light`             | On/Off Light             | Simple on/off light                                       |
+| `on-off-mounted-switch`    | On/Off Mounted Switch    | Hardwired mounted switch                                  |
+| `on-off-outlet`            | On/Off Plug-in Unit      | Smart plug / outlet                                       |
+| `on-off-switch`            | On/Off Light Switch      | Wall switch                                               |
+| `oven`                     | Oven                     | Operational state + cavity temperature                    |
+| `pressure-sensor`          | Pressure Sensor          | hPa measurement                                           |
+| `pump`                     | Pump                     | Pump on/off control                                       |
+| `rain-sensor`              | Rain Sensor              | Raining/dry boolean                                       |
+| `refrigerator`             | Refrigerator             | Temperature measurement                                   |
+| `robotic-vacuum-cleaner`   | Robotic Vacuum Cleaner   | Operational state reporting (running/stopped/paused)      |
+| `smoke-co-alarm`           | Smoke/CO Alarm           | Smoke and CO alarm with normal/warning/critical levels    |
+| `soil-sensor`              | Soil Sensor              | Soil moisture                                             |
+| `solar-power`              | Solar Power              | PV power and exported energy                              |
+| `speaker`                  | Speaker                  | Volume control + mute/unmute                              |
+| `temperature-sensor`       | Temperature Sensor       | °C measurement                                            |
+| `thermostat`               | Thermostat               | Heating/cooling setpoint + local temperature              |
+| `water-freeze-detector`    | Water Freeze Detector    | Frozen/normal boolean                                     |
+| `water-heater`             | Water Heater             | Heating setpoint + local temperature                      |
+| `water-leak-detector`      | Water Leak Detector      | Wet/dry boolean                                           |
+| `water-valve`              | Water Valve              | Open/close valve                                          |
+| `window-covering`          | Window Covering          | Blinds, shutters or roller shades with position and tilt  |
 
 ---
 
