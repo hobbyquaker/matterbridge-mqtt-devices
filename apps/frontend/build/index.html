@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MQTT Device Editor</title>
   <style>
-    body { font-family: Segoe UI, sans-serif; margin: 0; background: #f5f7fb; color: #1a2233; }
-    .wrap { max-width: 900px; margin: 24px auto; background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    body { font-family: Segoe UI, sans-serif; margin: 0; background: transparent; color: #1a2233; }
+    .wrap { padding: 20px; }
     h1 { margin: 0 0 6px 0; font-size: 24px; }
     p { margin: 0 0 16px 0; color: #4a5a78; }
     .section-label { grid-column: span 2; margin: 12px 0 0; padding: 6px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8896b0; border-bottom: 1px solid #e8ecf4; }
@@ -26,7 +26,32 @@
     .hint-btn:hover { color: #1f6feb; }
     .hint-popup { position: fixed; z-index: 9999; background: #1a2233; color: #e8ecf4; border-radius: 8px; padding: 10px 14px; font-size: 12px; max-width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,.3); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .field.full { grid-column: span 1; } .section-label { grid-column: span 1; } }
+    html.dark body { color: #e8ecf4; }
+    html.dark p, html.dark label, html.dark .status { color: #9fb0cc; }
+    html.dark .section-label { border-bottom-color: #2c3850; }
+    html.dark input, html.dark select { background: #1a2233; border-color: #3a465e; color: #e8ecf4; }
+    html.dark .comp-check { color: #e8ecf4; }
   </style>
+  <script>
+    // The page renders transparent inside the Matterbridge config dialog, so pick
+    // text/input colors from the embedding frontend's theme. Same-origin access to
+    // the parent can fail when configUrl points elsewhere; fall back to the OS theme.
+    (function () {
+      let dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      try {
+        if (window.parent && window.parent !== window) {
+          for (const el of [window.parent.document.body, window.parent.document.documentElement]) {
+            const m = getComputedStyle(el).backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+            if (m && m[4] !== '0') {
+              dark = 0.2126 * Number(m[1]) + 0.7152 * Number(m[2]) + 0.0722 * Number(m[3]) < 128;
+              break;
+            }
+          }
+        }
+      } catch { /* cross-origin parent */ }
+      document.documentElement.classList.toggle('dark', dark);
+    })();
+  </script>
 </head>
 <body>
   <div class="wrap">
