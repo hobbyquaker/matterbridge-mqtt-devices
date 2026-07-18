@@ -71,6 +71,7 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
       await this.mqttClient.endAsync();
       this.log.info('MQTT disconnected');
     }
+    await super.onShutdown(reason);
   }
 
   // ── MQTT ───────────────────────────────────────────────────────────────────
