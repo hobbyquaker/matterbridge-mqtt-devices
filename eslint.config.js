@@ -153,6 +153,7 @@ export default defineConfig([
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
       'n/no-extraneous-import': 'off', // Allow imports from devDependencies in test files
       'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
+      'n/no-missing-import': 'off', // @matterbridge/jest-utils resolves through the linked matterbridge (see jest.config.js); ts-jest catches genuinely missing imports
       '@typescript-eslint/no-unused-vars': 'off', // Disable TypeScript rule for unused variables in test files
       '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' type in test files
       '@typescript-eslint/no-empty-function': 'off', // Allow empty functions in test files
