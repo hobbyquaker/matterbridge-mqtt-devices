@@ -1,4 +1,4 @@
-import { MatterbridgeEndpoint, onOffMountedSwitch, powerSource } from 'matterbridge';
+import { MatterbridgeEndpoint, mountedOnOffControl, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -17,7 +17,7 @@ export const onOffMountedSwitchDescriptor: DeviceDescriptor = {
     const ON = cfg.payloadOn ?? 'ON';
     const OFF = cfg.payloadOff ?? 'OFF';
 
-    const ep = new MatterbridgeEndpoint([onOffMountedSwitch, powerSource]);
+    const ep = new MatterbridgeEndpoint([mountedOnOffControl, powerSource]);
     ctx.initEp(ep, cfg, 0x801b);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();

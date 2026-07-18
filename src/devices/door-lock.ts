@@ -1,4 +1,4 @@
-import { doorLockDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { doorLock, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -23,7 +23,7 @@ export const doorLockDescriptor: DeviceDescriptor = {
     const DOOR_OPEN = cfg.payloadDoorOpen ?? 'OPEN';
     const DOOR_CLOSED = cfg.payloadDoorClosed ?? 'CLOSED';
 
-    const ep = new MatterbridgeEndpoint([doorLockDevice, powerSource]);
+    const ep = new MatterbridgeEndpoint([doorLock, powerSource]);
     ctx.initEp(ep, cfg, 0x800e);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultDoorLockClusterServer();

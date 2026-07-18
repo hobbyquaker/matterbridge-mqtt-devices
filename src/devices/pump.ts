@@ -1,4 +1,4 @@
-import { MatterbridgeEndpoint, powerSource, pumpDevice } from 'matterbridge';
+import { MatterbridgeEndpoint, powerSource, pump } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -17,7 +17,7 @@ export const pumpDescriptor: DeviceDescriptor = {
     const ON = cfg.payloadOn ?? 'ON';
     const OFF = cfg.payloadOff ?? 'OFF';
 
-    const ep = new MatterbridgeEndpoint([pumpDevice, powerSource]);
+    const ep = new MatterbridgeEndpoint([pump, powerSource]);
     ctx.initEp(ep, cfg, 0x8024);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();

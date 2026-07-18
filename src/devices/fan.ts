@@ -1,4 +1,4 @@
-import { fanDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { fan, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -23,7 +23,7 @@ export const fanDescriptor: DeviceDescriptor = {
     const lvToPct = (lv: number): number => Math.round(Math.max(0, Math.min(1, (lv - SPD_MIN) / (SPD_MAX - SPD_MIN))) * 100);
     const pctToLv = (pct: number): number => Math.round((Math.max(0, Math.min(100, pct)) / 100) * (SPD_MAX - SPD_MIN) + SPD_MIN);
 
-    const ep = new MatterbridgeEndpoint([fanDevice, powerSource]);
+    const ep = new MatterbridgeEndpoint([fan, powerSource]);
     ctx.initEp(ep, cfg, 0x800a);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultFanControlClusterServer();

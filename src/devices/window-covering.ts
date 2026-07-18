@@ -1,4 +1,4 @@
-import { coverDevice, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { MatterbridgeEndpoint, powerSource, windowCovering } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -51,7 +51,7 @@ export const windowCoveringDescriptor: DeviceDescriptor = {
     const tiltMax = Number.isFinite(cfg.tiltMax) ? Number(cfg.tiltMax) : 100;
     const CLOSED_ALIASES = [CLOSE.toUpperCase(), 'CLOSED', 'CLOSE'];
 
-    const ep = new MatterbridgeEndpoint([coverDevice, powerSource]);
+    const ep = new MatterbridgeEndpoint([windowCovering, powerSource]);
     ctx.initEp(ep, cfg, 0x8008);
     ctx.applyConfigUrl(ep, cfg);
 

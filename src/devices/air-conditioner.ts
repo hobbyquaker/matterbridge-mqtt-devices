@@ -1,4 +1,4 @@
-import { airConditioner, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { MatterbridgeEndpoint, powerSource, roomAirConditioner } from 'matterbridge';
 
 import type { DeviceContext, DeviceDescriptor, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -33,7 +33,7 @@ export const airConditionerDescriptor: DeviceDescriptor = {
     const ON = cfg.payloadOn ?? 'ON';
     const OFF = cfg.payloadOff ?? 'OFF';
 
-    const ep = new MatterbridgeEndpoint([airConditioner, powerSource]);
+    const ep = new MatterbridgeEndpoint([roomAirConditioner, powerSource]);
     ctx.initEp(ep, cfg, 0x801f);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();

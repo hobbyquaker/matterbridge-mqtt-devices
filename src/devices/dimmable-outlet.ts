@@ -1,4 +1,4 @@
-import { dimmableOutlet, MatterbridgeEndpoint, powerSource } from 'matterbridge';
+import { dimmablePlugInUnit, MatterbridgeEndpoint, powerSource } from 'matterbridge';
 
 import type { AnyHandler, DeviceContext, DeviceDescriptor, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -18,7 +18,7 @@ export const dimmableOutletDescriptor: DeviceDescriptor = {
     const OFF = cfg.payloadOff ?? 'OFF';
     const { min: briMin, max: briMax } = ctx.getBrightnessRange(cfg);
 
-    const ep = new MatterbridgeEndpoint([dimmableOutlet, powerSource]);
+    const ep = new MatterbridgeEndpoint([dimmablePlugInUnit, powerSource]);
     ctx.initEp(ep, cfg, 0x800c);
     ctx.applyConfigUrl(ep, cfg);
     ep.createDefaultOnOffClusterServer();

@@ -1,4 +1,4 @@
-import { MatterbridgeEndpoint, speakerDevice } from 'matterbridge';
+import { MatterbridgeEndpoint, speaker } from 'matterbridge';
 
 import type { AnyHandler, DeviceContext, DeviceDescriptor, LevelRequest, MqttDeviceConfig } from './types.js';
 import { CID, COMMON_SETTINGS_KEYS, COMMON_SUBSCRIBE_KEYS } from './types.js';
@@ -38,8 +38,8 @@ export const speakerDescriptor: DeviceDescriptor = {
     const ON = cfg.payloadOn ?? 'ON';
     const OFF = cfg.payloadOff ?? 'OFF';
 
-    // speakerDevice has no powerSource by design
-    const ep = new MatterbridgeEndpoint([speakerDevice]);
+    // speaker has no powerSource by design
+    const ep = new MatterbridgeEndpoint([speaker]);
     ctx.initEp(ep, cfg, 0x8036);
     ctx.applyConfigUrl(ep, cfg);
     ep.createOnOffClusterServer(true); // true = on (not muted)
