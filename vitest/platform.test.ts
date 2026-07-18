@@ -67,6 +67,7 @@ const mockMatterbridge: PlatformMatterbridge = {
 const baseConfig: PlatformConfig = {
   name: 'matterbridge-mqtt-devices',
   type: 'DynamicPlatform',
+  version: '0.11.0',
   broker: 'mqtt://localhost:1883',
   devices: [],
   debug: false,
@@ -74,7 +75,7 @@ const baseConfig: PlatformConfig = {
 };
 
 function makeInstance(extra: Record<string, unknown> = {}): MqttPlatform {
-  return initializePlugin(mockMatterbridge, mockLog, { ...baseConfig, ...extra });
+  return initializePlugin(mockMatterbridge, mockLog, { ...baseConfig, ...extra } as PlatformConfig);
 }
 
 // ── Private method accessor ────────────────────────────────────────────────────
@@ -638,7 +639,7 @@ describe('MqttPlatform – MQTT routing', () => {
     instance = makeInstance();
     await instance.onStart('test');
     // onStart → connectMqtt → mqttClient.on('message', handler) is now recorded
-    const messageCall = mockMqttClient.on.mock.calls.find(([e]: [string]) => e === 'message');
+    const messageCall = mockMqttClient.on.mock.calls.find((c: any[]) => c[0] === 'message');
     if (!messageCall) throw new Error('Expected MQTT "message" handler to be registered');
     messageHandler = messageCall[1] as (topic: string, buf: Buffer) => void;
   });
