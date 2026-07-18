@@ -20,6 +20,16 @@
     "noImplicitAny": true,
     "alwaysStrict": true,
     "noImplicitOverride": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@matterbridge/jest-utils": [
+        "./node_modules/@matterbridge/jest-utils/dist/export.d.ts",
+        "./node_modules/matterbridge/node_modules/@matterbridge/jest-utils/dist/export.d.ts"
+      ],
+      "@matterbridge/jest-utils/matter": [
+        "./node_modules/@matterbridge/jest-utils/dist/matter.d.ts",
+        "./node_modules/matterbridge/node_modules/@matterbridge/jest-utils/dist/matter.d.ts"
+      ]
+    }
   }
 }
