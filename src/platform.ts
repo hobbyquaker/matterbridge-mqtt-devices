@@ -67,8 +67,10 @@ export class MqttPlatform extends MatterbridgeDynamicPlatform {
 
   override async onShutdown(reason?: string): Promise<void> {
     this.log.info(`onShutdown: ${reason ?? '-'}`);
-    if (this.mqttClient?.connected) {
-      await this.mqttClient.endAsync();
+    if (this.mqttClient) {
+      // Force-close when not connected, otherwise a reconnecting client keeps the process alive.
+      await this.mqttClient.endAsync(!this.mqttClient.connected);
+      this.mqttClient = undefined;
       this.log.info('MQTT disconnected');
     }
     await super.onShutdown(reason);

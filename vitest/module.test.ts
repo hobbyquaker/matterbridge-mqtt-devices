@@ -60,6 +60,7 @@ const mockMatterbridge: PlatformMatterbridge = {
 const mockConfig: PlatformConfig = {
   name: 'matterbridge-mqtt-devices',
   type: 'DynamicPlatform',
+  version: '0.11.0',
   broker: 'mqtt://localhost:1883',
   devices: [],
   debug: false,
@@ -95,9 +96,9 @@ describe('MqttPlatform', () => {
     expect(mockLog.warn).toHaveBeenCalledWith('No devices configured.');
   });
 
-  it('should shut down cleanly when mqtt is not connected', async () => {
+  it('should force-close the mqtt client when it is not connected', async () => {
     mockMqttClient.connected = false;
     await instance.onShutdown('test');
-    expect(mockMqttClient.endAsync).not.toHaveBeenCalled();
+    expect(mockMqttClient.endAsync).toHaveBeenCalledWith(true);
   });
 });
